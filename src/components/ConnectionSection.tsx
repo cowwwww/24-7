@@ -45,6 +45,16 @@ import {
   Calculate as MathIcon,
   Science as ScienceIcon,
   Business as BusinessIcon,
+  LocalHospital as MedicalIcon,
+  Engineering as EngineeringIcon,
+  Build as RepairIcon,
+  DesignServices as DesignIcon,
+  MusicNote as MusicIcon,
+  FitnessCenter as FitnessIcon,
+  Restaurant as FoodServiceIcon,
+  HomeRepairService as HomeServiceIcon,
+  Computer as TechIcon,
+  Psychology as CounselingIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -406,40 +416,85 @@ const ConnectionSection: React.FC = () => {
   }
 
   return (
-    <Box>
-      {/* Header */}
-
+    <Box sx={{ 
+      px: { xs: 1, sm: 2 }, 
+      pb: { xs: 10, sm: 4 } // Extra bottom padding on mobile for FAB
+    }}>
+      {/* Header with Search */}
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5" component="h1" sx={{ color: 'white', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+            🤝 Connections
+          </Typography>
+        </Box>
+        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 2 }}>
+          Connect with students, find tutors, and build your network
+        </Typography>
+        
+        {/* Integrated Search Bar */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search students, tutors, or subjects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'white',
+                  },
+                },
+                '& .MuiInputBase-input::placeholder': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+        </Box>
+      </Paper>
 
       {/* Navigation Tabs */}
       <Paper sx={{ mb: 3 }}>
         <Tabs 
           value={currentTab} 
           onChange={(e, newValue) => setCurrentTab(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
         >
           <Tab icon={<PersonIcon />} label="All Students" iconPosition="start" />
-          <Tab icon={<TutorIcon />} label="Find Tutors" iconPosition="start" />
+          <Tab icon={<TutorIcon />} label="Tutoring" iconPosition="start" />
+          <Tab icon={<MedicalIcon />} label="Medical" iconPosition="start" />
+          <Tab icon={<EngineeringIcon />} label="Engineering" iconPosition="start" />
+          <Tab icon={<TechIcon />} label="Tech Support" iconPosition="start" />
+          <Tab icon={<DesignIcon />} label="Design" iconPosition="start" />
+          <Tab icon={<MusicIcon />} label="Music" iconPosition="start" />
+          <Tab icon={<FitnessIcon />} label="Fitness" iconPosition="start" />
+          <Tab icon={<FoodServiceIcon />} label="Food Service" iconPosition="start" />
+          <Tab icon={<HomeServiceIcon />} label="Home Services" iconPosition="start" />
+          <Tab icon={<CounselingIcon />} label="Counseling" iconPosition="start" />
         </Tabs>
       </Paper>
 
-      {/* Search and Filters */}
+      {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search students..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
           <Box sx={{ flex: '0 0 160px', minWidth: 160 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Major</InputLabel>
@@ -827,6 +882,582 @@ const ConnectionSection: React.FC = () => {
             </Button>
           </Paper>
         )}
+      </TabPanel>
+
+      {/* Medical Services Tab */}
+      <TabPanel value={currentTab} index={2}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['medical', 'health', 'nursing', 'biology', 'anatomy', 'physiology'].some(medical => 
+                subject.toLowerCase().includes(medical)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <MedicalIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Medical Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['medical', 'health', 'nursing', 'biology', 'anatomy', 'physiology'].some(medical => 
+                          subject.toLowerCase().includes(medical)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Engineering Services Tab */}
+      <TabPanel value={currentTab} index={3}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['engineering', 'mechanical', 'electrical', 'civil', 'computer', 'software', 'programming'].some(eng => 
+                subject.toLowerCase().includes(eng)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <EngineeringIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Engineering Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['engineering', 'mechanical', 'electrical', 'civil', 'computer', 'software', 'programming'].some(eng => 
+                          subject.toLowerCase().includes(eng)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Tech Support Tab */}
+      <TabPanel value={currentTab} index={4}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['tech', 'computer', 'software', 'hardware', 'programming', 'coding', 'web', 'app'].some(tech => 
+                subject.toLowerCase().includes(tech)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <TechIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Tech Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['tech', 'computer', 'software', 'hardware', 'programming', 'coding', 'web', 'app'].some(tech => 
+                          subject.toLowerCase().includes(tech)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Design Services Tab */}
+      <TabPanel value={currentTab} index={5}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['design', 'graphic', 'ui', 'ux', 'art', 'creative', 'photoshop', 'illustrator'].some(design => 
+                subject.toLowerCase().includes(design)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <DesignIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Design Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['design', 'graphic', 'ui', 'ux', 'art', 'creative', 'photoshop', 'illustrator'].some(design => 
+                          subject.toLowerCase().includes(design)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Music Services Tab */}
+      <TabPanel value={currentTab} index={6}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['music', 'piano', 'guitar', 'violin', 'singing', 'voice', 'instrument', 'composition'].some(music => 
+                subject.toLowerCase().includes(music)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <MusicIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Music Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['music', 'piano', 'guitar', 'violin', 'singing', 'voice', 'instrument', 'composition'].some(music => 
+                          subject.toLowerCase().includes(music)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Fitness Services Tab */}
+      <TabPanel value={currentTab} index={7}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['fitness', 'gym', 'workout', 'training', 'yoga', 'pilates', 'running', 'sports'].some(fitness => 
+                subject.toLowerCase().includes(fitness)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <FitnessIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Fitness Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['fitness', 'gym', 'workout', 'training', 'yoga', 'pilates', 'running', 'sports'].some(fitness => 
+                          subject.toLowerCase().includes(fitness)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Food Services Tab */}
+      <TabPanel value={currentTab} index={8}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['cooking', 'baking', 'chef', 'food', 'culinary', 'recipe', 'meal', 'catering'].some(food => 
+                subject.toLowerCase().includes(food)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <FoodServiceIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Food Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['cooking', 'baking', 'chef', 'food', 'culinary', 'recipe', 'meal', 'catering'].some(food => 
+                          subject.toLowerCase().includes(food)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Home Services Tab */}
+      <TabPanel value={currentTab} index={9}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['cleaning', 'repair', 'maintenance', 'plumbing', 'electrical', 'handyman', 'home', 'house'].some(home => 
+                subject.toLowerCase().includes(home)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <HomeServiceIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Home Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['cleaning', 'repair', 'maintenance', 'plumbing', 'electrical', 'handyman', 'home', 'house'].some(home => 
+                          subject.toLowerCase().includes(home)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Counseling Services Tab */}
+      <TabPanel value={currentTab} index={10}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['counseling', 'therapy', 'mental health', 'psychology', 'support', 'wellness', 'life coaching'].some(counseling => 
+                subject.toLowerCase().includes(counseling)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <CounselingIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Counseling Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['counseling', 'therapy', 'mental health', 'psychology', 'support', 'wellness', 'life coaching'].some(counseling => 
+                          subject.toLowerCase().includes(counseling)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
       </TabPanel>
 
       {/* Create Profile Dialog */}
