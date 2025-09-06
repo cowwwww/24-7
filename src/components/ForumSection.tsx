@@ -23,6 +23,8 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
+  Tab,
+  Tabs,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -415,158 +417,105 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
         />
       </Paper>
 
-      {/* Category Filters */}
-      <Box sx={{ mb: 3 }}>
-        <Stack 
-          direction="row" 
-          spacing={{ xs: 0.5, sm: 1 }} 
-          flexWrap="wrap"
-          sx={{ gap: { xs: 0.5, sm: 1 } }}
+      {/* Category Tabs */}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs 
+          value={selectedCategory} 
+          onChange={(e, newValue) => setSelectedCategory(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
         >
-          <Chip
-            label="All"
-            variant={selectedCategory === 'all' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('all')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            label="All" 
+            value="all"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<QuestionIcon />}
-            label="Questions"
-            variant={selectedCategory === 'question' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('question')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<QuestionIcon />} 
+            label="Questions" 
+            value="question"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<IdeaIcon />}
-            label="Ideas"
-            variant={selectedCategory === 'idea' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('idea')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<IdeaIcon />} 
+            label="Ideas" 
+            value="idea"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<StudyIcon />}
-            label="Discussions"
-            variant={selectedCategory === 'discussion' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('discussion')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<StudyIcon />} 
+            label="Discussions" 
+            value="discussion"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<LifeIcon />}
-            label="Life"
-            variant={selectedCategory === 'life' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('life')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<LifeIcon />} 
+            label="Life" 
+            value="life"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<StudyZoneIcon />}
-            label="Study"
-            variant={selectedCategory === 'study' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('study')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<StudyZoneIcon />} 
+            label="Study Zone" 
+            value="study"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<ConfessionIcon />}
-            label="Confess"
-            variant={selectedCategory === 'confession' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('confession')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<ConfessionIcon />} 
+            label="Confession Wall" 
+            value="confession"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<TreeHoleIcon />}
-            label="Anon"
-            variant={selectedCategory === 'treehole' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('treehole')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<TreeHoleIcon />} 
+            label="Tree Hole" 
+            value="treehole"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<FoodIcon />}
-            label="Food"
-            variant={selectedCategory === 'food' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('food')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<FoodIcon />} 
+            label="Food" 
+            value="food"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<TravelIcon />}
-            label="Travel"
-            variant={selectedCategory === 'travel' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('travel')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<TravelIcon />} 
+            label="Travel" 
+            value="travel"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<HaircutIcon />}
-            label="Haircut"
-            variant={selectedCategory === 'haircut' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('haircut')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<HaircutIcon />} 
+            label="Haircut" 
+            value="haircut"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<HousingIcon />}
-            label="Housing"
-            variant={selectedCategory === 'housing' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('housing')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<HousingIcon />} 
+            label="Housing" 
+            value="housing"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-          <Chip
-            icon={<MaterialsIcon />}
-            label="Materials"
-            variant={selectedCategory === 'materials' ? 'filled' : 'outlined'}
-            onClick={() => setSelectedCategory('materials')}
-            size="small"
-            sx={{ 
-              mb: { xs: 0.5, sm: 1 },
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}
+          <Tab 
+            icon={<MaterialsIcon />} 
+            label="Study Materials" 
+            value="materials"
+            iconPosition="start"
+            sx={{ minWidth: 'auto' }}
           />
-        </Stack>
-      </Box>
+        </Tabs>
+      </Paper>
 
       {/* Search Results Summary */}
       {searchQuery && (
