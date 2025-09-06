@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "rate",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "professorName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "university",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
