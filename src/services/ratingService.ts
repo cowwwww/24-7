@@ -48,18 +48,16 @@ const markProfessorAsRated = (professorName: string, university: string): void =
   }
 };
 
-export const addRating = async (rating: Omit<Rating, 'id' | 'createdAt'>): Promise<void> => {
+export const addRating = async (rating: Omit<Rating, 'id' | 'createdAt'>, userId: string): Promise<void> => {
   try {
     // Check if user has already rated this professor
     if (hasUserRatedProfessor(rating.professorName, rating.university)) {
       throw new Error('You have already rated this professor. Each person can only rate once per professor.');
     }
 
-    const anonymousUserId = getAnonymousUserId();
-
     const ratingData = {
       ...rating,
-      userId: anonymousUserId,
+      userId: userId, // Use authenticated user ID
       createdAt: Timestamp.now()
     };
 
@@ -161,7 +159,6 @@ export const deleteRating = async (ratingId: string): Promise<void> => {
   }
 };
 
-export const canUserEditRating = (rating: Rating): boolean => {
-  const currentUserId = getAnonymousUserId();
+export const canUserEditRating = (rating: Rating, currentUserId: string): boolean => {
   return rating.userId === currentUserId;
 }; 

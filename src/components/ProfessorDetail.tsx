@@ -31,6 +31,7 @@ import {
 import { Professor } from '../types/Professor';
 import { Rating as RatingType } from '../types/Rating';
 import { getRatingsByProfessor, updateRating, deleteRating, canUserEditRating } from '../services/ratingService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProfessorDetailProps {
   open: boolean;
@@ -43,6 +44,7 @@ interface RatingDistribution {
 }
 
 const ProfessorDetail: React.FC<ProfessorDetailProps> = ({ open, onClose, professor }) => {
+  const { currentUser } = useAuth();
   const [ratings, setRatings] = useState<RatingType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -301,7 +303,7 @@ const ProfessorDetail: React.FC<ProfessorDetailProps> = ({ open, onClose, profes
                           <Typography variant="caption" color="text.secondary">
                             {formatDate(rating.createdAt)}
                           </Typography>
-                          {canUserEditRating(rating) && (
+                          {currentUser && canUserEditRating(rating, currentUser.uid) && (
                             <Box display="flex" gap={0.5}>
                               <IconButton 
                                 size="small" 
