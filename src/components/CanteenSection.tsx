@@ -39,7 +39,6 @@ import {
   Star as StarIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
-  TrendingUp as TrendingUpIcon,
   Schedule as ScheduleIcon,
   LocationOn as LocationIcon,
   Close as CloseIcon,
@@ -51,7 +50,6 @@ import {
   addCanteenRating,
   getWaitTimeEntries,
   getCanteenRatings,
-  getWaitTimePrediction,
   getTimeOfDay,
   getDayOfWeek,
   isCanteenOpen,
@@ -77,7 +75,6 @@ const CanteenSection: React.FC = () => {
   const [comment, setComment] = useState<string>('');
   const [recentEntries, setRecentEntries] = useState<WaitTimeEntry[]>([]);
   const [recentRatings, setRecentRatings] = useState<CanteenRating[]>([]);
-  const [prediction, setPrediction] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -182,15 +179,13 @@ const CanteenSection: React.FC = () => {
 
   const loadCanteenDetails = async (canteenId: string) => {
     try {
-      const [entries, ratings, pred] = await Promise.all([
+      const [entries, ratings] = await Promise.all([
         getWaitTimeEntries(canteenId, 10),
         getCanteenRatings(canteenId),
-        getWaitTimePrediction(canteenId, getTimeOfDay(), getDayOfWeek()),
       ]);
       
       setRecentEntries(entries);
       setRecentRatings(ratings.slice(0, 5));
-      setPrediction(pred);
     } catch (error) {
       console.error('Error loading canteen details:', error);
     }
@@ -257,9 +252,9 @@ const CanteenSection: React.FC = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
         {canteens.map((canteen) => (
-          <Grid xs={12} md={6} lg={4} key={canteen.id}>
+          <Box key={canteen.id} sx={{ flex: '1 1 300px', maxWidth: { xs: '100%', md: 'calc(50% - 12px)', lg: 'calc(33.33% - 16px)' } }}>
             <Card 
               sx={{ 
                 height: '100%', 
@@ -334,9 +329,9 @@ const CanteenSection: React.FC = () => {
                 </Button>
               </CardActions>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
 
       {/* Wait Time Dialog */}
       <Dialog open={waitTimeDialogOpen} onClose={() => setWaitTimeDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -504,8 +499,8 @@ const CanteenSection: React.FC = () => {
             </DialogTitle>
             <DialogContent>
               <Box sx={{ pt: 2 }}>
-                <Grid container spacing={3}>
-                  <Grid xs={12} md={6}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+                  <Box sx={{ flex: 1 }}>
                     <Paper sx={{ p: 2, mb: 2 }}>
                       <Typography variant="h6" gutterBottom>
                         Current Status
@@ -543,36 +538,9 @@ const CanteenSection: React.FC = () => {
                       </Box>
                     </Paper>
 
-                    {prediction && (
-                      <Paper sx={{ p: 2, mb: 2 }}>
-                        <Typography variant="h6" gutterBottom>
-                          <TrendingUpIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                          Wait Time Prediction
-                        </Typography>
-                        <Typography variant="body1" gutterBottom>
-                          Expected wait: {prediction.predictedWaitTime} minutes
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          Based on {prediction.basedOnEntries} recent entries
-                        </Typography>
-                        <Box display="flex" alignItems="center">
-                          <Typography variant="body2" sx={{ mr: 1 }}>
-                            Confidence:
-                          </Typography>
-                          <LinearProgress
-                            variant="determinate"
-                            value={prediction.confidence * 100}
-                            sx={{ flexGrow: 1, mr: 1 }}
-                          />
-                          <Typography variant="body2">
-                            {Math.round(prediction.confidence * 100)}%
-                          </Typography>
-                        </Box>
-                      </Paper>
-                    )}
-                  </Grid>
+                  </Box>
 
-                  <Grid xs={12} md={6}>
+                  <Box sx={{ flex: 1 }}>
                     <Paper sx={{ p: 2, mb: 2 }}>
                       <Typography variant="h6" gutterBottom>
                         Recent Wait Times
@@ -610,8 +578,8 @@ const CanteenSection: React.FC = () => {
                         ))}
                       </List>
                     </Paper>
-                  </Grid>
-                </Grid>
+                  </Box>
+                </Box>
 
                 <Box display="flex" gap={2} mt={3}>
                   <Button
