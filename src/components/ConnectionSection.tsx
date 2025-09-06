@@ -45,6 +45,16 @@ import {
   Calculate as MathIcon,
   Science as ScienceIcon,
   Business as BusinessIcon,
+  LocalHospital as MedicalIcon,
+  Engineering as EngineeringIcon,
+  Build as RepairIcon,
+  DesignServices as DesignIcon,
+  MusicNote as MusicIcon,
+  FitnessCenter as FitnessIcon,
+  Restaurant as FoodServiceIcon,
+  HomeRepairService as HomeServiceIcon,
+  Computer as TechIcon,
+  Psychology as CounselingIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -57,6 +67,15 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
+interface UserRating {
+  id: string;
+  raterId: string;
+  raterName: string;
+  rating: number;
+  comment: string;
+  timestamp: Timestamp;
+}
+
 interface StudentProfile {
   id: string;
   name: string;
@@ -65,6 +84,11 @@ interface StudentProfile {
   hobbies: string[];
   bio: string;
   skills: string[];
+  contactDetails: {
+    email: string;
+    phone?: string;
+    preferredContact: 'email' | 'phone' | 'both';
+  };
   helpOffering: {
     isOffering: boolean;
     subjects: string[];
@@ -73,6 +97,7 @@ interface StudentProfile {
     rating: number;
     completedSessions: number;
   };
+  ratings: UserRating[];
   avatar?: string;
   verified: boolean;
   timestamp: Timestamp;
@@ -116,17 +141,33 @@ const ConnectionSection: React.FC = () => {
     bio: '',
     hobbies: [] as string[],
     skills: [] as string[],
+    contactDetails: {
+      email: '',
+      phone: '',
+      preferredContact: 'email' as 'email' | 'phone' | 'both',
+    },
     helpOffering: {
       isOffering: false,
       subjects: [] as string[],
       pricePerHour: 0,
       description: '',
     },
+    ratings: [] as UserRating[],
   });
 
   const [hobbyInput, setHobbyInput] = useState('');
   const [skillInput, setSkillInput] = useState('');
   const [subjectInput, setSubjectInput] = useState('');
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [selectedProfileForRating, setSelectedProfileForRating] = useState<StudentProfile | null>(null);
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [ratingComment, setRatingComment] = useState('');
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [selectedProfileForContact, setSelectedProfileForContact] = useState<StudentProfile | null>(null);
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [selectedProfileForComment, setSelectedProfileForComment] = useState<StudentProfile | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [newCommentRating, setNewCommentRating] = useState<number | null>(null);
 
   const majors = [
     'Computer Science', 'Engineering', 'Business', 'Mathematics', 'Physics',
@@ -171,7 +212,7 @@ const ConnectionSection: React.FC = () => {
   };
 
   const handleSubmitProfile = async () => {
-    if (!newProfile.name.trim() || !newProfile.major.trim()) {
+    if (!newProfile.name.trim() || !newProfile.major.trim() || !newProfile.contactDetails.email.trim()) {
       return;
     }
 
@@ -183,6 +224,7 @@ const ConnectionSection: React.FC = () => {
           rating: 5.0,
           completedSessions: 0,
         },
+        ratings: [],
         verified: false,
         timestamp: Timestamp.now(),
       };
@@ -196,12 +238,18 @@ const ConnectionSection: React.FC = () => {
         bio: '',
         hobbies: [],
         skills: [],
+        contactDetails: {
+          email: '',
+          phone: '',
+          preferredContact: 'email',
+        },
         helpOffering: {
           isOffering: false,
           subjects: [],
           pricePerHour: 0,
           description: '',
         },
+        ratings: [],
       });
       setOpenDialog(false);
       loadProfiles();
@@ -304,6 +352,61 @@ const ConnectionSection: React.FC = () => {
     return profiles.filter(profile => profile.helpOffering.isOffering);
   };
 
+  const handleConnectClick = (profile: StudentProfile) => {
+    setSelectedProfileForRating(profile);
+    setRatingDialogOpen(true);
+  };
+
+  const handleContactClick = (profile: StudentProfile) => {
+    setSelectedProfileForContact(profile);
+    setContactDialogOpen(true);
+  };
+
+  const handleCommentClick = (profile: StudentProfile) => {
+    setSelectedProfileForComment(profile);
+    setCommentDialogOpen(true);
+  };
+
+  const handleSubmitComment = () => {
+    if (newCommentRating && newCommentRating > 0 && newComment.trim()) {
+      // Here you would typically save the comment to your database
+      console.log('Comment submitted:', {
+        profileId: selectedProfileForComment?.id,
+        rating: newCommentRating,
+        comment: newComment
+      });
+      
+      // Close dialog and reset
+      setCommentDialogOpen(false);
+      setNewCommentRating(null);
+      setNewComment('');
+      setSelectedProfileForComment(null);
+      
+      // Show success message
+      alert('Thank you for your comment! Your feedback has been submitted.');
+    }
+  };
+
+  const handleSubmitRating = () => {
+    if (userRating && userRating > 0) {
+      // Here you would typically save the rating to your database
+      console.log('Rating submitted:', {
+        profileId: selectedProfileForRating?.id,
+        rating: userRating,
+        comment: ratingComment
+      });
+      
+      // Close dialog and reset
+      setRatingDialogOpen(false);
+      setUserRating(null);
+      setRatingComment('');
+      setSelectedProfileForRating(null);
+      
+      // Show success message or proceed with connection
+      alert('Thank you for your rating! You can now connect with this student.');
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -313,15 +416,58 @@ const ConnectionSection: React.FC = () => {
   }
 
   return (
-    <Box>
-      {/* Header */}
+    <Box sx={{ 
+      px: { xs: 1, sm: 2 }, 
+      pb: { xs: 10, sm: 4 } // Extra bottom padding on mobile for FAB
+    }}>
+      {/* Header with Search */}
       <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
-        <Typography variant="h5" component="h1" sx={{ color: 'white', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-          🤝 Connect & Knowledge Marketplace
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5" component="h1" sx={{ color: 'white', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+            🤝 Connections
+          </Typography>
+        </Box>
+        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 2 }}>
+          Connect with students, find tutors, and build your network
         </Typography>
-        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          Find study partners, tutors & paid academic help
-        </Typography>
+        
+        {/* Integrated Search Bar */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search students, tutors, or subjects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'white',
+                  },
+                },
+                '& .MuiInputBase-input::placeholder': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+        </Box>
       </Paper>
 
       {/* Navigation Tabs */}
@@ -329,38 +475,40 @@ const ConnectionSection: React.FC = () => {
         <Tabs 
           value={currentTab} 
           onChange={(e, newValue) => setCurrentTab(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
         >
           <Tab icon={<PersonIcon />} label="All Students" iconPosition="start" />
-          <Tab icon={<TutorIcon />} label="Find Tutors" iconPosition="start" />
+          <Tab icon={<TutorIcon />} label="Tutoring" iconPosition="start" />
+          <Tab icon={<MedicalIcon />} label="Medical" iconPosition="start" />
+          <Tab icon={<EngineeringIcon />} label="Engineering" iconPosition="start" />
+          <Tab icon={<TechIcon />} label="Tech Support" iconPosition="start" />
+          <Tab icon={<DesignIcon />} label="Design" iconPosition="start" />
+          <Tab icon={<MusicIcon />} label="Music" iconPosition="start" />
+          <Tab icon={<FitnessIcon />} label="Fitness" iconPosition="start" />
+          <Tab icon={<FoodServiceIcon />} label="Food Service" iconPosition="start" />
+          <Tab icon={<HomeServiceIcon />} label="Home Services" iconPosition="start" />
+          <Tab icon={<CounselingIcon />} label="Counseling" iconPosition="start" />
         </Tabs>
       </Paper>
 
-      {/* Search and Filters */}
+      {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search students..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} md={2}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ flex: '0 0 160px', minWidth: 160 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Major</InputLabel>
               <Select
                 value={selectedMajor}
                 onChange={(e) => setSelectedMajor(e.target.value)}
                 label="Major"
+                sx={{ 
+                  '& .MuiSelect-select': { 
+                    paddingRight: '32px !important',
+                    minWidth: 'fit-content',
+                    whiteSpace: 'nowrap'
+                  } 
+                }}
               >
                 <MenuItem value="">All Majors</MenuItem>
                 {majors.map(major => (
@@ -368,14 +516,21 @@ const ConnectionSection: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
+          </Box>
+          <Box sx={{ flex: '0 0 160px', minWidth: 160 }}>
             <FormControl fullWidth size="small">
-              <InputLabel>Skill</InputLabel>
+              <InputLabel>Skills</InputLabel>
               <Select
                 value={selectedSkill}
                 onChange={(e) => setSelectedSkill(e.target.value)}
-                label="Skill"
+                label="Skills"
+                sx={{ 
+                  '& .MuiSelect-select': { 
+                    paddingRight: '32px !important',
+                    minWidth: 'fit-content',
+                    whiteSpace: 'nowrap'
+                  } 
+                }}
               >
                 <MenuItem value="">All Skills</MenuItem>
                 {popularSkills.map(skill => (
@@ -383,15 +538,22 @@ const ConnectionSection: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
+          </Box>
           {currentTab === 1 && (
-            <Grid item xs={12} md={2}>
+            <Box sx={{ flex: '0 0 180px', minWidth: 180 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Price Range</InputLabel>
                 <Select
                   value={priceRange}
                   onChange={(e) => setPriceRange(e.target.value)}
                   label="Price Range"
+                  sx={{ 
+                    '& .MuiSelect-select': { 
+                      paddingRight: '32px !important',
+                      minWidth: 'fit-content',
+                      whiteSpace: 'nowrap'
+                    } 
+                  }}
                 >
                   <MenuItem value="">Any Price</MenuItem>
                   <MenuItem value="0-10">$0-10/hour</MenuItem>
@@ -400,9 +562,9 @@ const ConnectionSection: React.FC = () => {
                   <MenuItem value="30-">$30+/hour</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
           )}
-          <Grid item xs={12} md={3}>
+          <Box sx={{ flex: '0 0 180px', minWidth: 180 }}>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -411,16 +573,16 @@ const ConnectionSection: React.FC = () => {
             >
               Create Profile
             </Button>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Paper>
 
       {/* Tab Content */}
       <TabPanel value={currentTab} index={0}>
         {/* All Students */}
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
           {getFilteredProfiles().map((profile) => (
-            <Grid item xs={12} md={6} lg={4} key={profile.id}>
+            <Box key={profile.id}>
               <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box display="flex" alignItems="center" gap={2} mb={2}>
@@ -433,9 +595,9 @@ const ConnectionSection: React.FC = () => {
                         {profile.name.split(' ').map(n => n[0]).join('')}
                       </Avatar>
                     </Badge>
-                    <Box>
-                      <Typography variant="h6">{profile.name}</Typography>
-                      <Typography variant="body2" color="textSecondary">
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="h6" sx={{ wordBreak: 'break-word' }}>{profile.name}</Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ wordBreak: 'break-word' }}>
                         {profile.major} • Year {profile.year}
                       </Typography>
                     </Box>
@@ -476,59 +638,103 @@ const ConnectionSection: React.FC = () => {
                       <Typography variant="caption" color="textSecondary">
                         Skills:
                       </Typography>
-                      <Box mt={0.5}>
-                        {profile.skills.slice(0, 3).map((skill) => (
+                      <Box mt={0.5} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {profile.skills.map((skill) => (
                           <Chip
                             key={skill}
                             icon={getSkillIcon(skill)}
                             label={skill}
                             size="small"
-                            sx={{ mr: 0.5, mb: 0.5, fontSize: '0.7rem' }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              minWidth: 'fit-content',
+                              whiteSpace: 'nowrap',
+                              '& .MuiChip-label': {
+                                whiteSpace: 'nowrap',
+                                overflow: 'visible'
+                              }
+                            }}
                           />
                         ))}
-                        {profile.skills.length > 3 && (
-                          <Typography variant="caption" color="textSecondary">
-                            +{profile.skills.length - 3} more
-                          </Typography>
-                        )}
                       </Box>
                     </Box>
                   )}
 
                   {profile.helpOffering.isOffering && (
-                  <Paper sx={{ p: 1, bgcolor: '#f5f5f5', border: '1px solid #000000' }}>
-                    <Typography variant="caption" color="primary" fontWeight="bold">
+                  <Paper sx={{ p: 2, bgcolor: '#f5f5f5', border: '1px solid #000000', mb: 2 }}>
+                    <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom>
                       💡 Offering Help:
                     </Typography>
-                      <Typography variant="body2">
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
                         {profile.helpOffering.subjects.join(', ')}
                       </Typography>
-                      <Typography variant="body2" color="primary" fontWeight="bold">
-                        ${profile.helpOffering.pricePerHour}/hour
-                      </Typography>
+                    </Box>
+                    <Typography variant="h6" color="primary" fontWeight="bold" sx={{ whiteSpace: 'nowrap' }}>
+                      ${profile.helpOffering.pricePerHour}/hour
+                    </Typography>
                     </Paper>
+                  )}
+
+                  {/* Ratings and Comments Section */}
+                  {profile.ratings && profile.ratings.length > 0 && (
+                    <Box mb={2}>
+                      <Typography variant="caption" color="textSecondary" gutterBottom>
+                        Recent Reviews:
+                      </Typography>
+                      <Box sx={{ maxHeight: '120px', overflowY: 'auto' }}>
+                        {profile.ratings.slice(0, 2).map((rating) => (
+                          <Paper key={rating.id} sx={{ p: 1, mb: 1, bgcolor: '#f9f9f9' }}>
+                            <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                              <Rating value={rating.rating} readOnly size="small" />
+                              <Typography variant="caption" color="textSecondary">
+                                by {rating.raterName}
+                              </Typography>
+                            </Box>
+                            {rating.comment && (
+                              <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                "{rating.comment}"
+                              </Typography>
+                            )}
+                          </Paper>
+                        ))}
+                        {profile.ratings.length > 2 && (
+                          <Typography variant="caption" color="textSecondary">
+                            +{profile.ratings.length - 2} more reviews
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
                   )}
                 </CardContent>
 
                 <CardActions>
-                  <Button size="small" startIcon={<ChatIcon />}>
-                    Connect
+                  <Button 
+                    size="small" 
+                    startIcon={<StarIcon />}
+                    onClick={() => handleCommentClick(profile)}
+                    color="primary"
+                  >
+                    Rate & Comment
                   </Button>
-                  {profile.helpOffering.isOffering && (
-                    <Button size="small" startIcon={<MoneyIcon />} color="primary">
-                      Book Session
-                    </Button>
-                  )}
+                  <Button 
+                    size="small" 
+                    startIcon={<PersonIcon />}
+                    onClick={() => handleContactClick(profile)}
+                    color="secondary"
+                  >
+                    Contact Info
+                  </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </TabPanel>
 
       <TabPanel value={currentTab} index={1}>
         {/* Tutors */}
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
           {getTutors().filter(profile => {
             if (searchTerm) {
               return profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -542,7 +748,7 @@ const ConnectionSection: React.FC = () => {
             }
             return true;
           }).map((profile) => (
-            <Grid item xs={12} md={6} lg={4} key={profile.id}>
+            <Box key={profile.id}>
               <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box display="flex" alignItems="center" gap={2} mb={2}>
@@ -570,21 +776,28 @@ const ConnectionSection: React.FC = () => {
                   </Box>
 
                 <Paper sx={{ p: 2, bgcolor: '#f5f5f5', mb: 2 }}>
-                  <Typography variant="h5" color="primary" fontWeight="bold" gutterBottom>
+                  <Typography variant="h5" color="primary" fontWeight="bold" gutterBottom sx={{ whiteSpace: 'nowrap' }}>
                     ${profile.helpOffering.pricePerHour}/hour
                   </Typography>
                     
                     <Typography variant="subtitle2" gutterBottom>
                       Subjects:
                     </Typography>
-                    <Box mb={1}>
+                    <Box mb={1} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {profile.helpOffering.subjects.map((subject) => (
                         <Chip
                           key={subject}
                           label={subject}
                           size="small"
                           color="primary"
-                          sx={{ mr: 0.5, mb: 0.5 }}
+                          sx={{ 
+                            minWidth: 'fit-content',
+                            whiteSpace: 'nowrap',
+                            '& .MuiChip-label': {
+                              whiteSpace: 'nowrap',
+                              overflow: 'visible'
+                            }
+                          }}
                         />
                       ))}
                     </Box>
@@ -606,14 +819,22 @@ const ConnectionSection: React.FC = () => {
                       <Typography variant="caption" color="textSecondary">
                         Additional Skills:
                       </Typography>
-                      <Box mt={0.5}>
-                        {profile.skills.slice(0, 3).map((skill) => (
+                      <Box mt={0.5} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {profile.skills.map((skill) => (
                           <Chip
                             key={skill}
                             label={skill}
                             size="small"
                             variant="outlined"
-                            sx={{ mr: 0.5, mb: 0.5, fontSize: '0.7rem' }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              minWidth: 'fit-content',
+                              whiteSpace: 'nowrap',
+                              '& .MuiChip-label': {
+                                whiteSpace: 'nowrap',
+                                overflow: 'visible'
+                              }
+                            }}
                           />
                         ))}
                       </Box>
@@ -622,14 +843,27 @@ const ConnectionSection: React.FC = () => {
                 </CardContent>
 
                 <CardActions>
-                  <Button variant="contained" startIcon={<MoneyIcon />} fullWidth>
-                    Book Session - ${profile.helpOffering.pricePerHour}/hr
+                  <Button 
+                    size="small" 
+                    startIcon={<StarIcon />}
+                    onClick={() => handleCommentClick(profile)}
+                    color="primary"
+                  >
+                    Rate & Comment
+                  </Button>
+                  <Button 
+                    size="small" 
+                    startIcon={<PersonIcon />}
+                    onClick={() => handleContactClick(profile)}
+                    color="secondary"
+                  >
+                    Contact Info
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
 
         {getTutors().length === 0 && (
           <Paper sx={{ p: 4, textAlign: 'center' }}>
@@ -650,6 +884,582 @@ const ConnectionSection: React.FC = () => {
         )}
       </TabPanel>
 
+      {/* Medical Services Tab */}
+      <TabPanel value={currentTab} index={2}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['medical', 'health', 'nursing', 'biology', 'anatomy', 'physiology'].some(medical => 
+                subject.toLowerCase().includes(medical)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <MedicalIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Medical Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['medical', 'health', 'nursing', 'biology', 'anatomy', 'physiology'].some(medical => 
+                          subject.toLowerCase().includes(medical)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Engineering Services Tab */}
+      <TabPanel value={currentTab} index={3}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['engineering', 'mechanical', 'electrical', 'civil', 'computer', 'software', 'programming'].some(eng => 
+                subject.toLowerCase().includes(eng)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <EngineeringIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Engineering Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['engineering', 'mechanical', 'electrical', 'civil', 'computer', 'software', 'programming'].some(eng => 
+                          subject.toLowerCase().includes(eng)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Tech Support Tab */}
+      <TabPanel value={currentTab} index={4}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['tech', 'computer', 'software', 'hardware', 'programming', 'coding', 'web', 'app'].some(tech => 
+                subject.toLowerCase().includes(tech)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <TechIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Tech Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['tech', 'computer', 'software', 'hardware', 'programming', 'coding', 'web', 'app'].some(tech => 
+                          subject.toLowerCase().includes(tech)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Design Services Tab */}
+      <TabPanel value={currentTab} index={5}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['design', 'graphic', 'ui', 'ux', 'art', 'creative', 'photoshop', 'illustrator'].some(design => 
+                subject.toLowerCase().includes(design)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <DesignIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Design Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['design', 'graphic', 'ui', 'ux', 'art', 'creative', 'photoshop', 'illustrator'].some(design => 
+                          subject.toLowerCase().includes(design)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Music Services Tab */}
+      <TabPanel value={currentTab} index={6}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['music', 'piano', 'guitar', 'violin', 'singing', 'voice', 'instrument', 'composition'].some(music => 
+                subject.toLowerCase().includes(music)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <MusicIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Music Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['music', 'piano', 'guitar', 'violin', 'singing', 'voice', 'instrument', 'composition'].some(music => 
+                          subject.toLowerCase().includes(music)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Fitness Services Tab */}
+      <TabPanel value={currentTab} index={7}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['fitness', 'gym', 'workout', 'training', 'yoga', 'pilates', 'running', 'sports'].some(fitness => 
+                subject.toLowerCase().includes(fitness)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <FitnessIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Fitness Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['fitness', 'gym', 'workout', 'training', 'yoga', 'pilates', 'running', 'sports'].some(fitness => 
+                          subject.toLowerCase().includes(fitness)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Food Services Tab */}
+      <TabPanel value={currentTab} index={8}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['cooking', 'baking', 'chef', 'food', 'culinary', 'recipe', 'meal', 'catering'].some(food => 
+                subject.toLowerCase().includes(food)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <FoodServiceIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Food Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['cooking', 'baking', 'chef', 'food', 'culinary', 'recipe', 'meal', 'catering'].some(food => 
+                          subject.toLowerCase().includes(food)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Home Services Tab */}
+      <TabPanel value={currentTab} index={9}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['cleaning', 'repair', 'maintenance', 'plumbing', 'electrical', 'handyman', 'home', 'house'].some(home => 
+                subject.toLowerCase().includes(home)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <HomeServiceIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Home Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['cleaning', 'repair', 'maintenance', 'plumbing', 'electrical', 'handyman', 'home', 'house'].some(home => 
+                          subject.toLowerCase().includes(home)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
+      {/* Counseling Services Tab */}
+      <TabPanel value={currentTab} index={10}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
+          {getFilteredProfiles().filter(profile => 
+            profile.helpOffering.isOffering && 
+            profile.helpOffering.subjects.some(subject => 
+              ['counseling', 'therapy', 'mental health', 'psychology', 'support', 'wellness', 'life coaching'].some(counseling => 
+                subject.toLowerCase().includes(counseling)
+              )
+            )
+          ).map((profile) => (
+            <Box key={profile.id}>
+              <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <CounselingIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="h3">
+                        {profile.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {profile.major} • {profile.year}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" paragraph>
+                    {profile.bio}
+                  </Typography>
+                  <Box mb={2}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Counseling Services:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {profile.helpOffering.subjects.filter(subject => 
+                        ['counseling', 'therapy', 'mental health', 'psychology', 'support', 'wellness', 'life coaching'].some(counseling => 
+                          subject.toLowerCase().includes(counseling)
+                        )
+                      ).map((subject) => (
+                        <Chip key={subject} label={subject} size="small" color="primary" />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Typography variant="h6" color="primary">
+                    ${profile.helpOffering.pricePerHour}/hour
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<ChatIcon />}
+                    onClick={() => handleConnectClick(profile)}
+                    fullWidth
+                  >
+                    Connect
+                  </Button>
+                </CardActions>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+      </TabPanel>
+
       {/* Create Profile Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Create Your Student Profile</DialogTitle>
@@ -663,22 +1473,20 @@ const ConnectionSection: React.FC = () => {
               required
             />
 
-            <Grid container spacing={2}>
-              <Grid item xs={8}>
-                <FormControl fullWidth>
-                  <InputLabel>Major</InputLabel>
-                  <Select
-                    value={newProfile.major}
-                    onChange={(e) => setNewProfile({ ...newProfile, major: e.target.value })}
-                    label="Major"
-                  >
-                    {majors.map(major => (
-                      <MenuItem key={major} value={major}>{major}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={4}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Major</InputLabel>
+                <Select
+                  value={newProfile.major}
+                  onChange={(e) => setNewProfile({ ...newProfile, major: e.target.value })}
+                  label="Major"
+                >
+                  {majors.map(major => (
+                    <MenuItem key={major} value={major}>{major}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Box>
                 <TextField
                   label="Year"
                   type="number"
@@ -687,8 +1495,8 @@ const ConnectionSection: React.FC = () => {
                   inputProps={{ min: 1, max: 6 }}
                   fullWidth
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             <TextField
               label="Bio"
@@ -699,6 +1507,57 @@ const ConnectionSection: React.FC = () => {
               rows={2}
               placeholder="Tell us about yourself..."
             />
+
+            {/* Contact Details Section */}
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                📞 Contact Details (Required)
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                <TextField
+                  label="Email Address"
+                  type="email"
+                  value={newProfile.contactDetails.email}
+                  onChange={(e) => setNewProfile({ 
+                    ...newProfile, 
+                    contactDetails: { ...newProfile.contactDetails, email: e.target.value }
+                  })}
+                  fullWidth
+                  required
+                  placeholder="your.email@university.edu"
+                />
+                <Box>
+                  <TextField
+                    label="Phone Number (Optional)"
+                    type="tel"
+                    value={newProfile.contactDetails.phone}
+                    onChange={(e) => setNewProfile({ 
+                      ...newProfile, 
+                      contactDetails: { ...newProfile.contactDetails, phone: e.target.value }
+                    })}
+                    fullWidth
+                    placeholder="(555) 123-4567"
+                  />
+                </Box>
+              </Box>
+              <Box>
+                  <FormControl fullWidth>
+                    <InputLabel>Preferred Contact Method</InputLabel>
+                    <Select
+                      value={newProfile.contactDetails.preferredContact}
+                      onChange={(e) => setNewProfile({ 
+                        ...newProfile, 
+                        contactDetails: { ...newProfile.contactDetails, preferredContact: e.target.value as 'email' | 'phone' | 'both' }
+                      })}
+                      label="Preferred Contact Method"
+                    >
+                      <MenuItem value="email">Email Only</MenuItem>
+                      <MenuItem value="phone">Phone Only</MenuItem>
+                      <MenuItem value="both">Both Email & Phone</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+            </Box>
 
             {/* Hobbies */}
             <Box>
@@ -830,9 +1689,164 @@ const ConnectionSection: React.FC = () => {
           <Button 
             onClick={handleSubmitProfile} 
             variant="contained"
-            disabled={!newProfile.name.trim() || !newProfile.major.trim()}
+            disabled={!newProfile.name.trim() || !newProfile.major.trim() || !newProfile.contactDetails.email.trim()}
           >
             Create Profile
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Rating Dialog */}
+      <Dialog open={ratingDialogOpen} onClose={() => setRatingDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Rate {selectedProfileForRating?.name} Before Connecting
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Please rate this student before connecting. This helps maintain quality in our community.
+            </Typography>
+            
+            <Box sx={{ my: 3 }}>
+              <Typography component="legend" gutterBottom>
+                Your Rating (Required)
+              </Typography>
+              <Rating
+                value={userRating}
+                onChange={(event, newValue) => {
+                  setUserRating(newValue);
+                }}
+                size="large"
+              />
+            </Box>
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Your Review (Optional)"
+              value={ratingComment}
+              onChange={(e) => setRatingComment(e.target.value)}
+              placeholder="Share your thoughts about this student..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRatingDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSubmitRating} 
+            variant="contained"
+            disabled={!userRating || userRating === 0}
+          >
+            Submit Rating & Connect
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Contact Info Dialog */}
+      <Dialog open={contactDialogOpen} onClose={() => setContactDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Contact Information - {selectedProfileForContact?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Here are the contact details for {selectedProfileForContact?.name}:
+            </Typography>
+            
+            <Box sx={{ mt: 3 }}>
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
+                <Typography variant="h6" gutterBottom>
+                  📧 Email
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2, wordBreak: 'break-all' }}>
+                  {selectedProfileForContact?.contactDetails.email}
+                </Typography>
+                
+                {selectedProfileForContact?.contactDetails.phone && (
+                  <>
+                    <Typography variant="h6" gutterBottom>
+                      📞 Phone
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {selectedProfileForContact.contactDetails.phone}
+                    </Typography>
+                  </>
+                )}
+                
+                <Typography variant="h6" gutterBottom>
+                  Preferred Contact Method
+                </Typography>
+                <Typography variant="body1">
+                  {selectedProfileForContact?.contactDetails.preferredContact === 'email' && 'Email Only'}
+                  {selectedProfileForContact?.contactDetails.preferredContact === 'phone' && 'Phone Only'}
+                  {selectedProfileForContact?.contactDetails.preferredContact === 'both' && 'Both Email & Phone'}
+                </Typography>
+              </Paper>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setContactDialogOpen(false)}>Close</Button>
+          <Button 
+            variant="contained"
+            onClick={() => {
+              // Copy email to clipboard
+              if (selectedProfileForContact?.contactDetails.email) {
+                navigator.clipboard.writeText(selectedProfileForContact.contactDetails.email);
+                alert('Email copied to clipboard!');
+              }
+            }}
+          >
+            Copy Email
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Comment Dialog */}
+      <Dialog open={commentDialogOpen} onClose={() => setCommentDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Rate & Comment on {selectedProfileForComment?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Share your experience with {selectedProfileForComment?.name}:
+            </Typography>
+            
+            <Box sx={{ my: 3 }}>
+              <Typography component="legend" gutterBottom>
+                Your Rating (Required)
+              </Typography>
+              <Rating
+                value={newCommentRating}
+                onChange={(event, newValue) => {
+                  setNewCommentRating(newValue);
+                }}
+                size="large"
+              />
+            </Box>
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Your Comment (Required)"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Share your thoughts about this student..."
+              required
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCommentDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSubmitComment} 
+            variant="contained"
+            disabled={!newCommentRating || newCommentRating === 0 || !newComment.trim()}
+          >
+            Submit Comment
           </Button>
         </DialogActions>
       </Dialog>
