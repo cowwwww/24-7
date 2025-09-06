@@ -3,22 +3,17 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  TextField,
   Button,
-  Box,
   Typography,
-  Alert,
-  Divider,
+  Box,
   IconButton,
-  InputAdornment,
-  Link,
+  Alert,
   CircularProgress,
   FormControlLabel,
   Checkbox,
+  Link,
 } from '@mui/material';
 import {
-  Visibility,
-  VisibilityOff,
   Google as GoogleIcon,
   Apple as AppleIcon,
   Close as CloseIcon,
@@ -32,86 +27,11 @@ interface SignupProps {
 }
 
 const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  const { signup, loginWithGoogle, loginWithApple } = useAuth();
-
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-  };
-
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      setError('Please enter your full name');
-      return false;
-    }
-    if (!formData.email) {
-      setError('Please enter your email');
-      return false;
-    }
-    if (!formData.email.includes('@')) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return false;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-    if (!agreeToTerms) {
-      setError('Please agree to the terms and conditions');
-      return false;
-    }
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-
-    try {
-      setError('');
-      setLoading(true);
-      console.log('Attempting signup with:', { email: formData.email, name: formData.name });
-      await signup(formData.email, formData.password, formData.name);
-      console.log('Signup successful');
-      onClose();
-      setFormData({ name: '', email: '', password: '', confirmPassword: '' });
-      setAgreeToTerms(false);
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      let errorMessage = 'Failed to create account';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered. Please try logging in instead.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak. Please choose a stronger password.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Please enter a valid email address.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { loginWithGoogle, loginWithApple } = useAuth();
 
   const handleGoogleSignup = async () => {
     if (!agreeToTerms) {
@@ -123,10 +43,10 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
       setError('');
       setLoading(true);
       await loginWithGoogle();
-      onClose();
-      setFormData({ name: '', email: '', password: '', confirmPassword: '' });
       setAgreeToTerms(false);
+      onClose();
     } catch (error: any) {
+      console.error('Google signup error:', error);
       setError(error.message || 'Failed to sign up with Google');
     } finally {
       setLoading(false);
@@ -143,10 +63,10 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
       setError('');
       setLoading(true);
       await loginWithApple();
-      onClose();
-      setFormData({ name: '', email: '', password: '', confirmPassword: '' });
       setAgreeToTerms(false);
+      onClose();
     } catch (error: any) {
+      console.error('Apple signup error:', error);
       setError(error.message || 'Failed to sign up with Apple');
     } finally {
       setLoading(false);
@@ -154,7 +74,6 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
   };
 
   const handleClose = () => {
-    setFormData({ name: '', email: '', password: '', confirmPassword: '' });
     setError('');
     setAgreeToTerms(false);
     onClose();
@@ -166,161 +85,104 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
         <Typography variant="h6">
           Join the Community! 🎓
         </Typography>
-        <IconButton onClick={handleClose}>
+        <IconButton onClick={handleClose} size="small">
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent sx={{ pb: 3 }}>
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Typography variant="body1" color="textSecondary">
+            Sign up with your social account to get started
+          </Typography>
+        </Box>
+
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
 
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Full Name"
-            value={formData.name}
-            onChange={handleChange('name')}
-            margin="normal"
-            autoComplete="name"
-            placeholder="John Doe"
-          />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={agreeToTerms}
+              onChange={(e) => setAgreeToTerms(e.target.checked)}
+              name="agreeToTerms"
+            />
+          }
+          label={
+            <Typography variant="body2">
+              I agree to the Terms of Service and Privacy Policy
+            </Typography>
+          }
+          sx={{ mb: 3 }}
+        />
 
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange('email')}
-            margin="normal"
-            autoComplete="email"
-            placeholder="student@university.edu"
-          />
-
-          <TextField
-            fullWidth
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            value={formData.password}
-            onChange={handleChange('password')}
-            margin="normal"
-            autoComplete="new-password"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <TextField
-            fullWidth
-            label="Confirm Password"
-            type={showConfirmPassword ? 'text' : 'password'}
-            value={formData.confirmPassword}
-            onChange={handleChange('confirmPassword')}
-            margin="normal"
-            autoComplete="new-password"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    edge="end"
-                  >
-                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={agreeToTerms}
-                onChange={(e) => setAgreeToTerms(e.target.checked)}
-                color="primary"
-              />
-            }
-            label={
-              <Typography variant="body2">
-                I agree to the{' '}
-                <Link href="#" sx={{ textDecoration: 'none' }}>
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link href="#" sx={{ textDecoration: 'none' }}>
-                  Privacy Policy
-                </Link>
-              </Typography>
-            }
-            sx={{ mt: 2, mb: 1 }}
-          />
-
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Button
-            type="submit"
             fullWidth
-            variant="contained"
+            variant="outlined"
             size="large"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleSignup}
             disabled={loading}
-            sx={{ mb: 2, py: 1.5 }}
+            sx={{ 
+              py: 1.5,
+              borderColor: '#db4437',
+              color: '#db4437',
+              '&:hover': {
+                borderColor: '#c23321',
+                backgroundColor: '#fdf2f2'
+              }
+            }}
           >
-            {loading ? <CircularProgress size={24} /> : 'Create Account'}
+            {loading ? <CircularProgress size={20} /> : 'Continue with Google'}
           </Button>
 
-          <Divider sx={{ my: 2 }}>
-            <Typography variant="body2" color="textSecondary">
-              or
-            </Typography>
-          </Divider>
+          <Button
+            fullWidth
+            variant="outlined"
+            size="large"
+            startIcon={<AppleIcon />}
+            onClick={handleAppleSignup}
+            disabled={loading}
+            sx={{ 
+              py: 1.5,
+              borderColor: '#000000',
+              color: '#000000',
+              '&:hover': {
+                borderColor: '#333333',
+                backgroundColor: '#f5f5f5'
+              }
+            }}
+          >
+            {loading ? <CircularProgress size={20} /> : 'Continue with Apple'}
+          </Button>
+        </Box>
 
-            <Button
-              fullWidth
-              variant="outlined"
-              size="large"
-              startIcon={<GoogleIcon />}
-              onClick={handleGoogleSignup}
-              disabled={loading}
-              sx={{ mb: 2, py: 1.5 }}
+        <Box textAlign="center" sx={{ mt: 3 }}>
+          <Typography variant="body2" color="textSecondary">
+            Already have an account?{' '}
+            <Link
+              component="button"
+              variant="body2"
+              onClick={() => {
+                handleClose();
+                onSwitchToLogin();
+              }}
+              sx={{ color: '#000000', textDecoration: 'underline' }}
             >
-              Continue with Google
-            </Button>
+              Sign In
+            </Link>
+          </Typography>
+        </Box>
 
-            <Button
-              fullWidth
-              variant="outlined"
-              size="large"
-              startIcon={<AppleIcon />}
-              onClick={handleAppleSignup}
-              disabled={loading}
-              sx={{ mb: 2, py: 1.5, color: '#000000', borderColor: '#000000' }}
-            >
-              Continue with Apple
-            </Button>
-
-          <Box textAlign="center">
-            <Typography variant="body2" color="textSecondary">
-              Already have an account?{' '}
-              <Link
-                component="button"
-                type="button"
-                onClick={onSwitchToLogin}
-                sx={{ textDecoration: 'none' }}
-              >
-                Sign in here
-              </Link>
-            </Typography>
-          </Box>
+        <Box sx={{ mt: 3, p: 2, backgroundColor: '#f9f9f9', borderRadius: 1 }}>
+          <Typography variant="caption" color="textSecondary" sx={{ display: 'block', textAlign: 'center' }}>
+            By signing up, you'll be able to participate in forum discussions, 
+            leave reviews, connect with other students, and access exclusive resources.
+          </Typography>
         </Box>
       </DialogContent>
     </Dialog>

@@ -1,26 +1,20 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   User,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   updateProfile,
   GoogleAuthProvider,
   OAuthProvider,
-  signInWithPopup,
-  sendPasswordResetEmail
+  signInWithPopup
 } from 'firebase/auth';
 import { auth } from '../firebase';
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (email: string, password: string) => Promise<any>;
-  signup: (email: string, password: string, displayName: string) => Promise<any>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<any>;
   loginWithApple: () => Promise<any>;
-  resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (displayName: string) => Promise<void>;
   loading: boolean;
 }
@@ -39,17 +33,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const signup = async (email: string, password: string, displayName: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    if (result.user && displayName) {
-      await updateProfile(result.user, { displayName });
-    }
-    return result;
-  };
-
-  const login = (email: string, password: string) => {
-    return signInWithEmailAndPassword(auth, email, password);
-  };
 
   const loginWithGoogle = () => {
     const provider = new GoogleAuthProvider();
@@ -67,9 +50,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return signOut(auth);
   };
 
-  const resetPassword = (email: string) => {
-    return sendPasswordResetEmail(auth, email);
-  };
 
   const updateUserProfile = async (displayName: string) => {
     if (currentUser) {
@@ -90,12 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     currentUser,
-    login,
-    signup,
     logout,
     loginWithGoogle,
     loginWithApple,
-    resetPassword,
     updateUserProfile,
     loading
   };
