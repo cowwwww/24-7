@@ -16,6 +16,7 @@ import {
   MenuItem,
   Avatar,
   Button,
+  Badge,
 } from '@mui/material';
 import {
   Forum as ForumIcon,
@@ -26,6 +27,7 @@ import {
   School as SchoolIcon,
   Login as LoginIcon,
   PersonAdd as SignupIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 
 // Import components for each section
@@ -36,7 +38,7 @@ import ResourceSection from './components/ResourceSection';
 
 // Import auth components
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { NotificationProvider } from './contexts/NotificationContext';
+import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import UserProfile from './components/UserProfile';
@@ -169,6 +171,7 @@ function MainApp() {
   const [profileMenuAnchor, setProfileMenuAnchor] = useState<null | HTMLElement>(null);
 
   const { currentUser } = useAuth();
+  const { unreadCount } = useNotifications();
 
   // Listen for navigation from notifications
   React.useEffect(() => {
@@ -275,6 +278,28 @@ function MainApp() {
               >
                 Welcome, {getDisplayName()}
               </Typography>
+              
+              {/* Notification Bell */}
+              <IconButton
+                onClick={handleProfileMenuOpen}
+                sx={{ color: 'white' }}
+              >
+                <Badge 
+                  badgeContent={unreadCount} 
+                  color="error"
+                  max={99}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      fontSize: '0.65rem',
+                      height: '16px',
+                      minWidth: '16px',
+                    }
+                  }}
+                >
+                  <NotificationsIcon fontSize="small" />
+                </Badge>
+              </IconButton>
+              
               <IconButton
                 onClick={handleProfileMenuOpen}
                 sx={{ p: 0 }}

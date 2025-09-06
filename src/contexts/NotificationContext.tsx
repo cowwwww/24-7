@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
 
@@ -93,11 +93,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const addNotification = async (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     try {
-      await addDoc(collection(db, 'notifications'), {
+      console.log('Adding notification to Firestore:', notification);
+      const docRef = await addDoc(collection(db, 'notifications'), {
         ...notification,
         read: false,
-        createdAt: new Date()
+        createdAt: Timestamp.now()
       });
+      console.log('Notification added successfully with ID:', docRef.id);
     } catch (error) {
       console.error('Error adding notification:', error);
     }
@@ -109,27 +111,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       markAsRead(notification.id);
     }
 
-    // Navigate based on notification type and target section
-    const params = new URLSearchParams();
-    
-    if (notification.forumPostId) {
-      params.set('postId', notification.forumPostId);
-    } else if (notification.reviewId) {
-      params.set('reviewId', notification.reviewId);
-    } else if (notification.postId) {
-      params.set('postId', notification.postId);
-    }
-
-    // Update URL to show the target section and highlight the specific post
-    const currentUrl = new URL(window.location.href);
-    currentUrl.hash = `#${notification.targetSection}`;
-    if (params.toString()) {
-      currentUrl.search = params.toString();
-    }
-    
-    // Navigate to the URL
-    window.location.href = currentUrl.toString();
-    
     // Trigger a custom event that components can listen to
     window.dispatchEvent(new CustomEvent('navigateToPost', {
       detail: {

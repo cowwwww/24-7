@@ -46,7 +46,9 @@ import {
   updateDoc, 
   doc, 
   arrayUnion,
-  Timestamp 
+  arrayRemove,
+  Timestamp,
+  where 
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -58,6 +60,7 @@ interface ForumPost {
   title: string;
   content: string;
   author: string;
+  userId?: string;
   isAnonymous: boolean;
   category: 'question' | 'idea' | 'discussion';
   timestamp: Timestamp;
@@ -266,31 +269,106 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
       const currentLikes = post.likes || [];
       const hasLiked = currentLikes.includes(userId);
       
-      if (!hasLiked) {
+      if (hasLiked) {
+        // Unlike the post
+        await updateDoc(postRef, {
+          likes: arrayRemove(userId)
+        });
+      } else {
+        // Like the post
         await updateDoc(postRef, {
           likes: arrayUnion(userId)
         });
         
         // Send notification to post author (if not liking own post)
-        if (post.userId && post.userId !== userId) {
-          await addNotification({
-            userId: post.userId,
-            type: 'like',
-            title: 'Someone liked your post',
-            message: `Your forum post "${post.title}" received a like`,
-            forumPostId: postId,
-            targetSection: 'forum',
-            fromUser: {
-              name: currentUser.displayName || currentUser.email || 'Someone',
-              email: currentUser.email || ''
-            }
+        console.log('Like notification debug:', {
+          postUserId: post.userId,
+          currentUserId: userId,
+          postAuthor: post.author,
+          currentUserName: currentUser.displayName || currentUser.email,
+          shouldSendNotification: post.userId && post.userId !== userId,
+          post: post
+        });
+        
+        // Check if we should send notification
+        const currentUserDisplayName = currentUser.displayName || currentUser.email || 'Student';
+        const isOwnPost = post.userId === userId || 
+                         (!post.userId && post.author === currentUserDisplayName);
+        
+        if (!isOwnPost && post.userId) {
+          console.log('Sending like notification...');
+          try {
+            await addNotification({
+              userId: post.userId,
+              type: 'like',
+              title: 'Someone liked your post',
+              message: `Your forum post "${post.title}" received a like`,
+              forumPostId: postId,
+              targetSection: 'forum',
+              fromUser: {
+                name: currentUserDisplayName,
+                email: currentUser.email || ''
+              }
+            });
+            console.log('Like notification sent successfully');
+          } catch (error) {
+            console.error('Error sending like notification:', error);
+          }
+        } else {
+          console.log('No notification sent because:', {
+            noUserId: !post.userId,
+            ownPost: isOwnPost,
+            postAuthor: post.author,
+            currentUser: currentUserDisplayName,
+            reason: !post.userId ? 'Post missing userId field' : 'User liked own post'
           });
+          
+          // For posts without userId, show a warning
+          if (!post.userId && !isOwnPost) {
+            console.warn(`Post "${post.title}" is missing userId field. Notifications won't work for this post.`);
+          }
         }
       }
       
       loadPosts();
     } catch (error) {
       console.error('Error liking post:', error);
+    }
+  };
+
+  // Temporary function to fix existing posts without userId
+  const fixPostsWithoutUserId = async () => {
+    if (!currentUser) return;
+    
+    try {
+      console.log('Fixing posts without userId...');
+      
+      // Get all posts by current user that don't have userId
+      const userDisplayName = currentUser.displayName || currentUser.email || 'Student';
+      const postsToFix = posts.filter(post => 
+        !post.userId && 
+        (post.author === userDisplayName || 
+         post.author === (currentUser.displayName || 'Anonymous') ||
+         post.author === (currentUser.email?.split('@')[0] || 'Anonymous'))
+      );
+      
+      console.log(`Found ${postsToFix.length} posts to fix:`, postsToFix.map(p => p.title));
+      
+      for (const post of postsToFix) {
+        const postRef = doc(db, 'forumPosts', post.id);
+        await updateDoc(postRef, {
+          userId: currentUser.uid
+        });
+        console.log(`Fixed post: ${post.title}`);
+      }
+      
+      // Reload posts to see the changes
+      loadPosts();
+      
+      alert(`Fixed ${postsToFix.length} posts! Now notifications should work for your posts.`);
+    } catch (error) {
+      console.error('Error fixing posts:', error);
+      alert('Error fixing posts. Check console for details.');
     }
   };
 
@@ -368,12 +446,38 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     <Box>
       {/* Header */}
       <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
-        <Typography variant="h5" component="h1" sx={{ color: 'white', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-          📚 Forum
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+          <Typography variant="h5" component="h1" sx={{ color: 'white', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+            📚 Forum
+          </Typography>
+          
+          {/* Temporary fix button for posts without userId */}
+          {currentUser && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={fixPostsWithoutUserId}
+              sx={{ 
+                color: 'white', 
+                borderColor: 'white',
+                '&:hover': {
+                  borderColor: '#cccccc',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                }
+              }}
+            >
+              Fix My Posts
+            </Button>
+          )}
+        </Box>
         <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
           Ask questions, share ideas, discuss
         </Typography>
+        {currentUser && (
+          <Typography variant="caption" sx={{ color: '#999999', fontSize: '0.75rem', mt: 1, display: 'block' }}>
+            💡 If notifications aren't working, click "Fix My Posts" to enable them for your existing posts
+          </Typography>
+        )}
       </Paper>
 
       {/* AI-Powered Search */}
