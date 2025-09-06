@@ -395,12 +395,25 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
       px: { xs: 1, sm: 2 }, 
       pb: { xs: 10, sm: 4 } // Extra bottom padding on mobile for FAB
     }}>
-      {/* AI-Powered Search */}
-      <ForumSearch
-        posts={posts}
-        onSearch={handleSearch}
-        onPostSelect={handlePostSelect}
-      />
+      {/* Header with Search */}
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5" component="h1" sx={{ color: 'white', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+            📚 Forum
+          </Typography>
+          
+        </Box>
+        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 2 }}>
+          Ask questions, share ideas, discuss
+        </Typography>
+        
+        {/* Integrated Search Bar */}
+        <ForumSearch
+          posts={posts}
+          onSearch={handleSearch}
+          onPostSelect={handlePostSelect}
+        />
+      </Paper>
 
       {/* Category Filters */}
       <Box sx={{ mb: 3 }}>
@@ -872,4 +885,3 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
 };
 
 export default ForumSection;
-
