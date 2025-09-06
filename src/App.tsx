@@ -22,7 +22,7 @@ import {
   Forum as ForumIcon,
   Star as ReviewIcon,
   People as ConnectionIcon,
-  Link as ResourceIcon,
+  Storefront as MarketplaceIcon,
   Menu as MenuIcon,
   School as SchoolIcon,
   Login as LoginIcon,
@@ -34,7 +34,7 @@ import {
 import ForumSection from './components/ForumSection';
 import ReviewSection from './components/ReviewSection';
 import ConnectionSection from './components/ConnectionSection';
-import ResourceSection from './components/ResourceSection';
+import MarketplaceSection from './components/ResourceSection';
 
 // Import auth components
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -243,7 +243,7 @@ function MainApp() {
     { label: 'Forum', icon: <ForumIcon />, component: <ForumSection highlightedPostId={currentTab === 0 ? highlightedPostId : null} /> },
     { label: 'Reviews', icon: <ReviewIcon />, component: <ReviewSection highlightedPostId={currentTab === 1 ? highlightedPostId : null} /> },
     { label: 'Connect', icon: <ConnectionIcon />, component: <ConnectionSection highlightedPostId={currentTab === 2 ? highlightedPostId : null} /> },
-    { label: 'Resources', icon: <ResourceIcon />, component: <ResourceSection highlightedPostId={currentTab === 3 ? highlightedPostId : null} /> },
+    { label: '二手平台', icon: <MarketplaceIcon />, component: <MarketplaceSection highlightedPostId={currentTab === 3 ? highlightedPostId : null} /> },
   ];
 
   return (
