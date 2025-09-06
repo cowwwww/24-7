@@ -18,7 +18,6 @@ import {
   Divider,
   Stack,
   Paper,
-  Grid,
   Fab,
   Menu,
   MenuItem,
@@ -392,20 +391,10 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
   }
 
   return (
-    <Box>
-      {/* Header */}
-      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-          <Typography variant="h5" component="h1" sx={{ color: 'white', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-            📚 Forum
-          </Typography>
-          
-        </Box>
-        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          Ask questions, share ideas, discuss
-        </Typography>
-      </Paper>
-
+    <Box sx={{ 
+      px: { xs: 1, sm: 2 }, 
+      pb: { xs: 10, sm: 4 } // Extra bottom padding on mobile for FAB
+    }}>
       {/* AI-Powered Search */}
       <ForumSearch
         posts={posts}
@@ -415,96 +404,153 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
 
       {/* Category Filters */}
       <Box sx={{ mb: 3 }}>
-        <Stack direction="row" spacing={1} flexWrap="wrap">
+        <Stack 
+          direction="row" 
+          spacing={{ xs: 0.5, sm: 1 }} 
+          flexWrap="wrap"
+          sx={{ gap: { xs: 0.5, sm: 1 } }}
+        >
           <Chip
             label="All"
             variant={selectedCategory === 'all' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('all')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<QuestionIcon />}
             label="Questions"
             variant={selectedCategory === 'question' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('question')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<IdeaIcon />}
             label="Ideas"
             variant={selectedCategory === 'idea' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('idea')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<StudyIcon />}
             label="Discussions"
             variant={selectedCategory === 'discussion' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('discussion')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<LifeIcon />}
             label="Life"
             variant={selectedCategory === 'life' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('life')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<StudyZoneIcon />}
-            label="Study Zone"
+            label="Study"
             variant={selectedCategory === 'study' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('study')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<ConfessionIcon />}
-            label="Confession Wall"
+            label="Confess"
             variant={selectedCategory === 'confession' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('confession')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<TreeHoleIcon />}
-            label="Tree Hole"
+            label="Anon"
             variant={selectedCategory === 'treehole' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('treehole')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<FoodIcon />}
             label="Food"
             variant={selectedCategory === 'food' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('food')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<TravelIcon />}
             label="Travel"
             variant={selectedCategory === 'travel' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('travel')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<HaircutIcon />}
             label="Haircut"
             variant={selectedCategory === 'haircut' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('haircut')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<HousingIcon />}
             label="Housing"
             variant={selectedCategory === 'housing' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('housing')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
           <Chip
             icon={<MaterialsIcon />}
-            label="Study Materials"
+            label="Materials"
             variant={selectedCategory === 'materials' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('materials')}
-            sx={{ mb: 1 }}
+            size="small"
+            sx={{ 
+              mb: { xs: 0.5, sm: 1 },
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}
           />
         </Stack>
       </Box>
@@ -549,28 +595,31 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
           </Button>
         </Paper>
       ) : (
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'grid', gap: { xs: 1.5, sm: 2 } }}>
           {filteredPosts.map((post) => (
-            <Grid item xs={12} key={post.id}>
-              <Card 
-                id={`post-${post.id}`}
-                elevation={2} 
-                sx={{ 
-                  '&:hover': { elevation: 4 },
-                  ...(highlightedPostId === post.id && {
-                    border: '3px solid #000000',
-                    boxShadow: '0 0 10px rgba(0,0,0,0.3)',
-                    transition: 'all 0.3s ease'
-                  }),
-                  ...((highlightedPost === post.id || highlightedPostId === post.id) && {
-                    border: '3px solid #ff6b35',
-                    boxShadow: '0 0 15px rgba(255,107,53,0.4)',
-                    transition: 'all 0.3s ease',
-                    animation: 'glow 2s ease-in-out'
-                  })
-                }}
-              >
-                <CardContent>
+            <Card 
+              key={post.id}
+              id={`post-${post.id}`}
+              elevation={2} 
+              sx={{ 
+                '&:hover': { elevation: 4 },
+                ...(highlightedPostId === post.id && {
+                  border: '3px solid #000000',
+                  boxShadow: '0 0 10px rgba(0,0,0,0.3)',
+                  transition: 'all 0.3s ease'
+                }),
+                ...((highlightedPost === post.id || highlightedPostId === post.id) && {
+                  border: '3px solid #ff6b35',
+                  boxShadow: '0 0 15px rgba(255,107,53,0.4)',
+                  transition: 'all 0.3s ease',
+                  animation: 'glow 2s ease-in-out'
+                })
+              }}
+            >
+                <CardContent sx={{ 
+                  p: { xs: 2, sm: 3 },
+                  '&:last-child': { pb: { xs: 2, sm: 3 } }
+                }}>
                   {/* Post Header */}
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
                     <Box display="flex" alignItems="center" gap={2}>
@@ -584,12 +633,24 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
                         {getCategoryIcon(post.category)}
                       </Avatar>
                       <Box>
-                        <Typography variant="h6" component="h3">
+                        <Typography 
+                          variant="h6" 
+                          component="h3"
+                          sx={{ 
+                            fontSize: { xs: '1rem', sm: '1.25rem' },
+                            lineHeight: { xs: 1.3, sm: 1.4 },
+                            mb: { xs: 0.5, sm: 1 }
+                          }}
+                        >
                           {post.title}
                         </Typography>
-                        <Box display="flex" alignItems="center" gap={1}>
+                        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                           {post.isAnonymous ? <AnonymousIcon fontSize="small" /> : <PersonIcon fontSize="small" />}
-                          <Typography variant="body2" color="textSecondary">
+                          <Typography 
+                            variant="body2" 
+                            color="textSecondary"
+                            sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                          >
                             {post.author} • {post.timestamp?.toDate().toLocaleDateString()}
                           </Typography>
                           <Chip 
@@ -607,12 +668,25 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
                   </Box>
 
                   {/* Post Content */}
-                  <Typography variant="body1" paragraph>
+                  <Typography 
+                    variant="body1" 
+                    paragraph
+                    sx={{ 
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      lineHeight: { xs: 1.4, sm: 1.5 },
+                      mb: { xs: 1.5, sm: 2 }
+                    }}
+                  >
                     {post.content}
                   </Typography>
 
                   {/* Post Actions */}
-                  <Box display="flex" alignItems="center" gap={2}>
+                  <Box 
+                    display="flex" 
+                    alignItems="center" 
+                    gap={{ xs: 1, sm: 2 }}
+                    flexWrap="wrap"
+                  >
                     <Button
                       startIcon={<LikeIcon />}
                       size="small"
@@ -653,9 +727,8 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
                   )}
                 </CardContent>
               </Card>
-            </Grid>
           ))}
-        </Grid>
+        </Box>
       )}
 
       {/* Floating Action Button */}
@@ -799,3 +872,4 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
 };
 
 export default ForumSection;
+
