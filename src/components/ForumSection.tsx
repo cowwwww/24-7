@@ -94,7 +94,6 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
-    author: '',
     isAnonymous: false,
     category: 'discussion' as 'question' | 'idea' | 'discussion',
   });
@@ -103,7 +102,6 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string>('');
   const [replyContent, setReplyContent] = useState('');
-  const [replyAuthor, setReplyAuthor] = useState('');
   const [replyAnonymous, setReplyAnonymous] = useState(false);
 
   useEffect(() => {
@@ -223,7 +221,7 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
   };
 
   const handleSubmitPost = async () => {
-    if (!newPost.title.trim() || !newPost.content.trim()) {
+    if (!newPost.title.trim() || !newPost.content.trim() || !currentUser) {
       return;
     }
 
@@ -231,7 +229,8 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     try {
       const postData = {
         ...newPost,
-        author: newPost.isAnonymous ? 'Anonymous' : (newPost.author || 'Anonymous Student'),
+        author: newPost.isAnonymous ? 'Anonymous' : (currentUser.displayName || currentUser.email || 'Student'),
+        userId: currentUser.uid, // Add userId for notifications
         timestamp: Timestamp.now(),
         likes: [],
         replies: [],
@@ -242,7 +241,6 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
       setNewPost({
         title: '',
         content: '',
-        author: '',
         isAnonymous: false,
         category: 'discussion',
       });
@@ -297,13 +295,14 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
   };
 
   const handleReply = async () => {
-    if (!replyContent.trim()) return;
+    if (!replyContent.trim() || !currentUser) return;
 
     try {
       const reply = {
         id: Date.now().toString(),
         content: replyContent,
-        author: replyAnonymous ? 'Anonymous' : (replyAuthor || 'Anonymous Student'),
+        author: replyAnonymous ? 'Anonymous' : (currentUser.displayName || currentUser.email || 'Student'),
+        userId: currentUser.uid,
         isAnonymous: replyAnonymous,
         timestamp: Timestamp.now(),
         likes: [],
@@ -314,8 +313,24 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
         replies: arrayUnion(reply)
       });
 
+      // Send notification to post author (if not replying to own post)
+      const post = posts.find(p => p.id === selectedPostId);
+      if (post && post.userId && post.userId !== currentUser.uid) {
+        await addNotification({
+          userId: post.userId,
+          type: 'reply',
+          title: 'New reply to your post',
+          message: `${reply.author} replied to your post "${post.title}"`,
+          forumPostId: selectedPostId,
+          targetSection: 'forum',
+          fromUser: {
+            name: reply.author,
+            email: currentUser.email || ''
+          }
+        });
+      }
+
       setReplyContent('');
-      setReplyAuthor('');
       setReplyAnonymous(false);
       setReplyDialogOpen(false);
       loadPosts();
@@ -551,18 +566,20 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
       )}
 
       {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        sx={{ 
-          position: 'fixed', 
-          bottom: { xs: 80, md: 16 }, // Higher on mobile to avoid bottom nav
-          right: 16,
-          zIndex: 1000
-        }}
-        onClick={() => setOpenDialog(true)}
-      >
-        <AddIcon />
-      </Fab>
+      {currentUser && (
+        <Fab
+          color="primary"
+          sx={{ 
+            position: 'fixed', 
+            bottom: { xs: 80, md: 16 }, // Higher on mobile to avoid bottom nav
+            right: 16,
+            zIndex: 1000
+          }}
+          onClick={() => setOpenDialog(true)}
+        >
+          <AddIcon />
+        </Fab>
+      )}
 
       {/* New Post Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
@@ -609,14 +626,12 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
               label="Post anonymously"
             />
 
-            {!newPost.isAnonymous && (
-              <TextField
-                label="Your Name (optional)"
-                value={newPost.author}
-                onChange={(e) => setNewPost({ ...newPost, author: e.target.value })}
-                fullWidth
-                placeholder="How would you like others to see you?"
-              />
+            {!newPost.isAnonymous && currentUser && (
+              <Box sx={{ mb: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Posting as: <strong>{currentUser.displayName || currentUser.email || 'Student'}</strong>
+                </Typography>
+              </Box>
             )}
           </Stack>
         </DialogContent>
@@ -657,14 +672,12 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
               label="Reply anonymously"
             />
 
-            {!replyAnonymous && (
-              <TextField
-                label="Your Name (optional)"
-                value={replyAuthor}
-                onChange={(e) => setReplyAuthor(e.target.value)}
-                fullWidth
-                placeholder="How would you like others to see you?"
-              />
+            {!replyAnonymous && currentUser && (
+              <Box sx={{ mb: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="body2" color="textSecondary">
+                  Replying as: <strong>{currentUser.displayName || currentUser.email || 'Student'}</strong>
+                </Typography>
+              </Box>
             )}
           </Stack>
         </DialogContent>
