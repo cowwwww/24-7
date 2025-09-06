@@ -4,13 +4,12 @@ import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBeY8Ilf8qQJ7XtaiRmO2oO4jOcs4alveY",
-  authDomain: "edurate-2b89a.firebaseapp.com",
-  projectId: "edurate-2b89a",
-  storageBucket: "edurate-2b89a.firebasestorage.app",
-  messagingSenderId: "165836154723",
-  appId: "1:165836154723:web:65e52808348b962bff5556",
-  measurementId: "G-5DW4F4PGJE"
+  apiKey: "AIzaSyAxztUAD816Iq9ALznA175QuPgib8kWA3U",
+  authDomain: "team24-7.firebaseapp.com",
+  projectId: "team24-7",
+  storageBucket: "team24-7.firebasestorage.app",
+  messagingSenderId: "433461983643",
+  appId: "1:433461983643:web:f281e9d75bf5ccc38dc93e"
 };
 
 // Initialize Firebase
