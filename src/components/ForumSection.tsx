@@ -71,7 +71,7 @@ interface ForumPost {
   author: string;
   userId?: string;
   isAnonymous: boolean;
-  category: 'question' | 'idea' | 'discussion' | 'life' | 'study' | 'confession' | 'treehole' | 'food' | 'travel' | 'haircut' | 'housing' | 'materials';
+  category: 'question' | 'idea' | 'discussion';
   timestamp: Timestamp;
   likes: string[];
   replies: Reply[];
@@ -107,7 +107,7 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     title: '',
     content: '',
     isAnonymous: false,
-    category: 'discussion' as 'question' | 'idea' | 'discussion' | 'life' | 'study' | 'confession' | 'treehole' | 'food' | 'travel' | 'haircut' | 'housing' | 'materials',
+    category: 'discussion' as 'question' | 'idea' | 'discussion',
   });
 
   // Reply form
@@ -320,41 +320,6 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     }
   };
 
-  // Temporary function to fix existing posts without userId
-  const fixPostsWithoutUserId = async () => {
-    if (!currentUser) return;
-    
-    try {
-      console.log('Fixing posts without userId...');
-      
-      // Get all posts by current user that don't have userId
-      const userDisplayName = currentUser.displayName || currentUser.email || 'Student';
-      const postsToFix = posts.filter(post => 
-        !post.userId && 
-        (post.author === userDisplayName || 
-         post.author === (currentUser.displayName || 'Anonymous') ||
-         post.author === (currentUser.email?.split('@')[0] || 'Anonymous'))
-      );
-      
-      console.log(`Found ${postsToFix.length} posts to fix:`, postsToFix.map(p => p.title));
-      
-      for (const post of postsToFix) {
-        const postRef = doc(db, 'forumPosts', post.id);
-        await updateDoc(postRef, {
-          userId: currentUser.uid
-        });
-        console.log(`Fixed post: ${post.title}`);
-      }
-      
-      // Reload posts to see the changes
-      loadPosts();
-      
-      alert(`Fixed ${postsToFix.length} posts! Now notifications should work for your posts.`);
-    } catch (error) {
-      console.error('Error fixing posts:', error);
-      alert('Error fixing posts. Check console for details.');
-    }
-  };
 
   const handleReply = async () => {
     if (!replyContent.trim() || !currentUser) return;
@@ -405,16 +370,6 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     switch (category) {
       case 'question': return <QuestionIcon />;
       case 'idea': return <IdeaIcon />;
-      case 'discussion': return <StudyIcon />;
-      case 'life': return <LifeIcon />;
-      case 'study': return <StudyZoneIcon />;
-      case 'confession': return <ConfessionIcon />;
-      case 'treehole': return <TreeHoleIcon />;
-      case 'food': return <FoodIcon />;
-      case 'travel': return <TravelIcon />;
-      case 'haircut': return <HaircutIcon />;
-      case 'housing': return <HousingIcon />;
-      case 'materials': return <MaterialsIcon />;
       default: return <StudyIcon />;
     }
   };
@@ -423,16 +378,6 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     switch (category) {
       case 'question': return '#666666';
       case 'idea': return '#333333';
-      case 'discussion': return '#000000';
-      case 'life': return '#4CAF50';
-      case 'study': return '#2196F3';
-      case 'confession': return '#E91E63';
-      case 'treehole': return '#9C27B0';
-      case 'food': return '#FF9800';
-      case 'travel': return '#00BCD4';
-      case 'haircut': return '#795548';
-      case 'housing': return '#607D8B';
-      case 'materials': return '#3F51B5';
       default: return '#000000';
     }
   };
@@ -455,33 +400,10 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
             📚 Forum
           </Typography>
           
-          {/* Temporary fix button for posts without userId */}
-          {currentUser && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={fixPostsWithoutUserId}
-              sx={{ 
-                color: 'white', 
-                borderColor: 'white',
-                '&:hover': {
-                  borderColor: '#cccccc',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                }
-              }}
-            >
-              Fix My Posts
-            </Button>
-          )}
         </Box>
         <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
           Ask questions, share ideas, discuss
         </Typography>
-        {currentUser && (
-          <Typography variant="caption" sx={{ color: '#999999', fontSize: '0.75rem', mt: 1, display: 'block' }}>
-            💡 If notifications aren't working, click "Fix My Posts" to enable them for your existing posts
-          </Typography>
-        )}
       </Paper>
 
       {/* AI-Powered Search */}
@@ -523,63 +445,63 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
           />
           <Chip
             icon={<LifeIcon />}
-            label="生活区"
+            label="Life"
             variant={selectedCategory === 'life' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('life')}
             sx={{ mb: 1 }}
           />
           <Chip
             icon={<StudyZoneIcon />}
-            label="学习区"
+            label="Study Zone"
             variant={selectedCategory === 'study' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('study')}
             sx={{ mb: 1 }}
           />
           <Chip
             icon={<ConfessionIcon />}
-            label="表白墙"
+            label="Confession Wall"
             variant={selectedCategory === 'confession' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('confession')}
             sx={{ mb: 1 }}
           />
           <Chip
             icon={<TreeHoleIcon />}
-            label="树洞"
+            label="Tree Hole"
             variant={selectedCategory === 'treehole' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('treehole')}
             sx={{ mb: 1 }}
           />
           <Chip
             icon={<FoodIcon />}
-            label="美食"
+            label="Food"
             variant={selectedCategory === 'food' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('food')}
             sx={{ mb: 1 }}
           />
           <Chip
             icon={<TravelIcon />}
-            label="旅游"
+            label="Travel"
             variant={selectedCategory === 'travel' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('travel')}
             sx={{ mb: 1 }}
           />
           <Chip
             icon={<HaircutIcon />}
-            label="剪头发"
+            label="Haircut"
             variant={selectedCategory === 'haircut' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('haircut')}
             sx={{ mb: 1 }}
           />
           <Chip
             icon={<HousingIcon />}
-            label="生活经验"
+            label="Housing"
             variant={selectedCategory === 'housing' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('housing')}
             sx={{ mb: 1 }}
           />
           <Chip
             icon={<MaterialsIcon />}
-            label="学习资料区"
+            label="Study Materials"
             variant={selectedCategory === 'materials' ? 'filled' : 'outlined'}
             onClick={() => setSelectedCategory('materials')}
             sx={{ mb: 1 }}
@@ -627,9 +549,9 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
           </Button>
         </Paper>
       ) : (
-        <Box sx={{ display: 'grid', gap: 2 }}>
+        <Grid container spacing={2}>
           {filteredPosts.map((post) => (
-            <Box key={post.id}>
+            <Grid item xs={12} key={post.id}>
               <Card 
                 id={`post-${post.id}`}
                 elevation={2} 
@@ -731,9 +653,9 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
                   )}
                 </CardContent>
               </Card>
-            </Box>
+            </Grid>
           ))}
-        </Box>
+        </Grid>
       )}
 
       {/* Floating Action Button */}
@@ -767,15 +689,15 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
               <MenuItem value="question">❓ Question</MenuItem>
               <MenuItem value="idea">💡 Idea</MenuItem>
               <MenuItem value="discussion">💬 Discussion</MenuItem>
-              <MenuItem value="life">🏠 生活区</MenuItem>
-              <MenuItem value="study">📚 学习区</MenuItem>
-              <MenuItem value="confession">💕 表白墙</MenuItem>
-              <MenuItem value="treehole">🕳️ 树洞</MenuItem>
-              <MenuItem value="food">🍜 美食</MenuItem>
-              <MenuItem value="travel">✈️ 旅游</MenuItem>
-              <MenuItem value="haircut">✂️ 剪头发</MenuItem>
-              <MenuItem value="housing">🏘️ 生活经验</MenuItem>
-              <MenuItem value="materials">📖 学习资料区</MenuItem>
+              <MenuItem value="life">🏠 Life</MenuItem>
+              <MenuItem value="study">📚 Study Zone</MenuItem>
+              <MenuItem value="confession">💕 Confession Wall</MenuItem>
+              <MenuItem value="treehole">🕳️ Tree Hole</MenuItem>
+              <MenuItem value="food">🍜 Food</MenuItem>
+              <MenuItem value="travel">✈️ Travel</MenuItem>
+              <MenuItem value="haircut">✂️ Haircut</MenuItem>
+              <MenuItem value="housing">🏘️ Housing</MenuItem>
+              <MenuItem value="materials">📖 Study Materials</MenuItem>
             </TextField>
 
             <TextField
