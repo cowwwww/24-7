@@ -93,13 +93,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const addNotification = async (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
     try {
-      console.log('Adding notification to Firestore:', notification);
-      const docRef = await addDoc(collection(db, 'notifications'), {
+      await addDoc(collection(db, 'notifications'), {
         ...notification,
         read: false,
         createdAt: Timestamp.now()
       });
-      console.log('Notification added successfully with ID:', docRef.id);
     } catch (error) {
       console.error('Error adding notification:', error);
     }

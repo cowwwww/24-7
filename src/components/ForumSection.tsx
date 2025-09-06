@@ -281,22 +281,11 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
         });
         
         // Send notification to post author (if not liking own post)
-        console.log('Like notification debug:', {
-          postUserId: post.userId,
-          currentUserId: userId,
-          postAuthor: post.author,
-          currentUserName: currentUser.displayName || currentUser.email,
-          shouldSendNotification: post.userId && post.userId !== userId,
-          post: post
-        });
-        
-        // Check if we should send notification
         const currentUserDisplayName = currentUser.displayName || currentUser.email || 'Student';
         const isOwnPost = post.userId === userId || 
                          (!post.userId && post.author === currentUserDisplayName);
         
         if (!isOwnPost && post.userId) {
-          console.log('Sending like notification...');
           try {
             await addNotification({
               userId: post.userId,
@@ -310,22 +299,8 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
                 email: currentUser.email || ''
               }
             });
-            console.log('Like notification sent successfully');
           } catch (error) {
             console.error('Error sending like notification:', error);
-          }
-        } else {
-          console.log('No notification sent because:', {
-            noUserId: !post.userId,
-            ownPost: isOwnPost,
-            postAuthor: post.author,
-            currentUser: currentUserDisplayName,
-            reason: !post.userId ? 'Post missing userId field' : 'User liked own post'
-          });
-          
-          // For posts without userId, show a warning
-          if (!post.userId && !isOwnPost) {
-            console.warn(`Post "${post.title}" is missing userId field. Notifications won't work for this post.`);
           }
         }
       }
