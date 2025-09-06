@@ -34,6 +34,8 @@ import {
   Star as StarIcon,
   TrendingUp as TrendingIcon,
   AccessTime as WaitTimeIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -42,9 +44,13 @@ import {
   orderBy, 
   query, 
   Timestamp,
-  where 
+  where,
+  updateDoc,
+  deleteDoc,
+  doc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface FacilityReview {
   id: string;
@@ -54,6 +60,7 @@ interface FacilityReview {
   rating: number;
   review: string;
   reviewer: string;
+  userId?: string; // For tracking review ownership
   timestamp: Timestamp;
   occupancyLevel?: 'low' | 'medium' | 'high';
   waitTime?: number; // in minutes
@@ -81,10 +88,13 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const ReviewSection: React.FC = () => {
+  const { currentUser } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   const [reviews, setReviews] = useState<FacilityReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [editingReview, setEditingReview] = useState<FacilityReview | null>(null);
   const [selectedType, setSelectedType] = useState<'toilet' | 'canteen' | 'course' | 'professor'>('toilet');
   
   const [newReview, setNewReview] = useState({
@@ -103,6 +113,28 @@ const ReviewSection: React.FC = () => {
     { id: 'course', label: 'Courses', icon: <CourseIcon />, color: '#666666' },
     { id: 'professor', label: 'Professors', icon: <ProfessorIcon />, color: '#999999' },
   ];
+
+  // Generate a simple anonymous user ID based on browser fingerprint
+  const getUserId = (): string => {
+    if (currentUser) {
+      return currentUser.uid;
+    }
+    
+    let userId = localStorage.getItem('anonymous_user_id');
+    if (!userId) {
+      // Create a simple ID based on screen resolution, timezone, and random string
+      const fingerprint = [
+        screen.width,
+        screen.height,
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+        navigator.language,
+        Math.random().toString(36).substring(2, 15)
+      ].join('-');
+      userId = btoa(fingerprint).substring(0, 20);
+      localStorage.setItem('anonymous_user_id', userId);
+    }
+    return userId;
+  };
 
   useEffect(() => {
     loadReviews();
@@ -136,7 +168,8 @@ const ReviewSection: React.FC = () => {
       const reviewData = {
         ...newReview,
         type: selectedType,
-        reviewer: newReview.reviewer || 'Anonymous Student',
+        reviewer: newReview.reviewer || (currentUser ? currentUser.displayName || 'Anonymous User' : 'Anonymous Student'),
+        userId: getUserId(),
         timestamp: Timestamp.now(),
       };
 
@@ -212,6 +245,70 @@ const ReviewSection: React.FC = () => {
       }))
       .sort((a, b) => b.averageRating - a.averageRating)
       .slice(0, 5);
+  };
+
+  const handleEditReview = (review: FacilityReview) => {
+    setEditingReview(review);
+    setNewReview({
+      name: review.name,
+      location: review.location,
+      rating: review.rating,
+      review: review.review,
+      reviewer: review.reviewer,
+      occupancyLevel: review.occupancyLevel || 'medium',
+      waitTime: review.waitTime || 0,
+    });
+    setSelectedType(review.type);
+    setOpenEditDialog(true);
+  };
+
+  const handleUpdateReview = async () => {
+    if (!editingReview || !newReview.name.trim() || !newReview.location.trim() || newReview.rating === 0) {
+      return;
+    }
+
+    try {
+      const reviewData = {
+        ...newReview,
+        type: selectedType,
+        reviewer: newReview.reviewer || (currentUser ? currentUser.displayName || 'Anonymous User' : 'Anonymous Student'),
+        userId: getUserId(),
+        timestamp: editingReview.timestamp, // Keep original timestamp
+      };
+
+      await updateDoc(doc(db, 'facilityReviews', editingReview.id), reviewData);
+      
+      setNewReview({
+        name: '',
+        location: '',
+        rating: 0,
+        review: '',
+        reviewer: '',
+        occupancyLevel: 'medium',
+        waitTime: 0,
+      });
+      setEditingReview(null);
+      setOpenEditDialog(false);
+      loadReviews();
+    } catch (error) {
+      console.error('Error updating review:', error);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (window.confirm('Are you sure you want to delete this review?')) {
+      try {
+        await deleteDoc(doc(db, 'facilityReviews', reviewId));
+        loadReviews();
+      } catch (error) {
+        console.error('Error deleting review:', error);
+      }
+    }
+  };
+
+  const canEditReview = (review: FacilityReview): boolean => {
+    const currentUserId = getUserId();
+    return review.userId === currentUserId;
   };
 
   if (loading) {
@@ -370,7 +467,27 @@ const ReviewSection: React.FC = () => {
                         <Typography variant="h6" component="h3">
                           {review.name}
                         </Typography>
-                        <Rating value={review.rating} readOnly size="small" />
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Rating value={review.rating} readOnly size="small" />
+                          {canEditReview(review) && (
+                            <Box display="flex" gap={0.5}>
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleEditReview(review)}
+                                sx={{ color: 'primary.main' }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleDeleteReview(review.id)}
+                                sx={{ color: 'error.main' }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          )}
+                        </Box>
                       </Box>
 
                       <Box display="flex" alignItems="center" gap={1} mb={1}>
@@ -546,6 +663,100 @@ const ReviewSection: React.FC = () => {
             disabled={!newReview.name.trim() || !newReview.location.trim() || newReview.rating === 0}
           >
             Submit Review
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Review Dialog */}
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Edit Review for {facilityTypes.find(t => t.id === selectedType)?.label}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <TextField
+              label="Name"
+              value={newReview.name}
+              onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
+              fullWidth
+              placeholder={`e.g., ${selectedType === 'toilet' ? 'Library 2nd Floor Restroom' : 
+                selectedType === 'canteen' ? 'Main Campus Cafeteria' :
+                selectedType === 'course' ? 'Introduction to Computer Science' :
+                'Dr. Smith - Mathematics'}`}
+            />
+
+            <TextField
+              label="Location"
+              value={newReview.location}
+              onChange={(e) => setNewReview({ ...newReview, location: e.target.value })}
+              fullWidth
+              placeholder="Building/Floor/Room details"
+            />
+
+            <Box>
+              <Typography component="legend" gutterBottom>
+                Rating *
+              </Typography>
+              <Rating
+                value={newReview.rating}
+                onChange={(e, newValue) => setNewReview({ ...newReview, rating: newValue || 0 })}
+                size="large"
+              />
+            </Box>
+
+            {(selectedType === 'toilet' || selectedType === 'canteen') && (
+              <>
+                <TextField
+                  select
+                  label="Current Occupancy Level"
+                  value={newReview.occupancyLevel}
+                  onChange={(e) => setNewReview({ ...newReview, occupancyLevel: e.target.value as any })}
+                  fullWidth
+                  SelectProps={{ native: true }}
+                >
+                  <option value="low">🟢 Low Traffic - Easily accessible</option>
+                  <option value="medium">🟡 Moderate - Some waiting expected</option>
+                  <option value="high">🔴 Very Busy - Long wait times</option>
+                </TextField>
+
+                <TextField
+                  label="Wait Time (minutes)"
+                  type="number"
+                  value={newReview.waitTime}
+                  onChange={(e) => setNewReview({ ...newReview, waitTime: Number(e.target.value) })}
+                  fullWidth
+                  inputProps={{ min: 0, max: 60 }}
+                />
+              </>
+            )}
+
+            <TextField
+              label="Review (Optional)"
+              value={newReview.review}
+              onChange={(e) => setNewReview({ ...newReview, review: e.target.value })}
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Share your experience..."
+            />
+
+            <TextField
+              label="Your Name (Optional)"
+              value={newReview.reviewer}
+              onChange={(e) => setNewReview({ ...newReview, reviewer: e.target.value })}
+              fullWidth
+              placeholder="How would you like to be credited?"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handleUpdateReview} 
+            variant="contained"
+            disabled={!newReview.name.trim() || !newReview.location.trim() || newReview.rating === 0}
+          >
+            Update Review
           </Button>
         </DialogActions>
       </Dialog>

@@ -17,17 +17,20 @@ import {
   CardContent,
   IconButton,
   CircularProgress,
-  Alert
+  Alert,
+  TextField
 } from '@mui/material';
 import {
   Close as CloseIcon,
   School as SchoolIcon,
   Email as EmailIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { Professor } from '../types/Professor';
 import { Rating as RatingType } from '../types/Rating';
-import { getRatingsByProfessor } from '../services/ratingService';
+import { getRatingsByProfessor, updateRating, deleteRating, canUserEditRating } from '../services/ratingService';
 
 interface ProfessorDetailProps {
   open: boolean;
@@ -43,6 +46,10 @@ const ProfessorDetail: React.FC<ProfessorDetailProps> = ({ open, onClose, profes
   const [ratings, setRatings] = useState<RatingType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingRating, setEditingRating] = useState<RatingType | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editRating, setEditRating] = useState(0);
+  const [editReview, setEditReview] = useState('');
 
   useEffect(() => {
     if (professor && open) {
@@ -99,6 +106,45 @@ const ProfessorDetail: React.FC<ProfessorDetailProps> = ({ open, onClose, profes
       .slice(0, 2);
   };
 
+  const handleEditRating = (rating: RatingType) => {
+    setEditingRating(rating);
+    setEditRating(rating.rating);
+    setEditReview(rating.review || '');
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateRating = async () => {
+    if (!editingRating || !editRating) return;
+
+    try {
+      await updateRating(editingRating.id!, {
+        rating: editRating,
+        review: editReview
+      });
+      
+      setEditDialogOpen(false);
+      setEditingRating(null);
+      setEditRating(0);
+      setEditReview('');
+      fetchRatings(); // Refresh the ratings
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      setError('Failed to update rating');
+    }
+  };
+
+  const handleDeleteRating = async (ratingId: string) => {
+    if (window.confirm('Are you sure you want to delete this rating?')) {
+      try {
+        await deleteRating(ratingId);
+        fetchRatings(); // Refresh the ratings
+      } catch (error) {
+        console.error('Error deleting rating:', error);
+        setError('Failed to delete rating');
+      }
+    }
+  };
+
   if (!professor) return null;
 
   const distribution = calculateRatingDistribution();
@@ -106,6 +152,7 @@ const ProfessorDetail: React.FC<ProfessorDetailProps> = ({ open, onClose, profes
   const totalRatings = ratings.length;
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -250,9 +297,29 @@ const ProfessorDetail: React.FC<ProfessorDetailProps> = ({ open, onClose, profes
                             <Rating value={rating.rating} readOnly size="small" />
                           </Box>
                         </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {formatDate(rating.createdAt)}
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDate(rating.createdAt)}
+                          </Typography>
+                          {canUserEditRating(rating) && (
+                            <Box display="flex" gap={0.5}>
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleEditRating(rating)}
+                                sx={{ color: 'primary.main' }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleDeleteRating(rating.id!)}
+                                sx={{ color: 'error.main' }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          )}
+                        </Box>
                       </Box>
                       
                       {rating.review && (
@@ -275,6 +342,49 @@ const ProfessorDetail: React.FC<ProfessorDetailProps> = ({ open, onClose, profes
         </Button>
       </DialogActions>
     </Dialog>
+
+    {/* Edit Rating Dialog */}
+    <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        Edit Your Rating
+      </DialogTitle>
+      <DialogContent>
+        <Box sx={{ py: 2 }}>
+          <Typography component="legend" gutterBottom>
+            Your Rating
+          </Typography>
+          <Rating
+            value={editRating}
+            onChange={(event, newValue) => {
+              setEditRating(newValue || 0);
+            }}
+            size="large"
+          />
+          
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Your Review (Optional)"
+            value={editReview}
+            onChange={(e) => setEditReview(e.target.value)}
+            sx={{ mt: 3 }}
+            placeholder="Share your experience with this professor..."
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+        <Button 
+          onClick={handleUpdateRating} 
+          variant="contained"
+          disabled={!editRating || editRating === 0}
+        >
+          Update Rating
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
 

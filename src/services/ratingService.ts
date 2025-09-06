@@ -5,7 +5,10 @@ import {
   query, 
   where, 
   orderBy,
-  Timestamp 
+  Timestamp,
+  updateDoc,
+  deleteDoc,
+  doc
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Rating } from '../types/Rating';
@@ -123,4 +126,42 @@ export const getRatingsByProfessor = async (professorName: string, university: s
     console.error('Error fetching professor ratings:', error);
     throw new Error('Failed to fetch professor ratings');
   }
+};
+
+export const updateRating = async (ratingId: string, updatedRating: Partial<Rating>): Promise<void> => {
+  try {
+    const ratingData = {
+      ...updatedRating,
+      createdAt: Timestamp.now() // Update the timestamp when rating is modified
+    };
+
+    await updateDoc(doc(db, 'rate', ratingId), ratingData);
+    console.log('Rating updated successfully');
+  } catch (error: any) {
+    console.error('Error updating rating:', error);
+    if (error?.code === 'permission-denied') {
+      throw new Error('Permission denied. Please try again.');
+    } else {
+      throw new Error(`Failed to update rating: ${error.message}`);
+    }
+  }
+};
+
+export const deleteRating = async (ratingId: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, 'rate', ratingId));
+    console.log('Rating deleted successfully');
+  } catch (error: any) {
+    console.error('Error deleting rating:', error);
+    if (error?.code === 'permission-denied') {
+      throw new Error('Permission denied. Please try again.');
+    } else {
+      throw new Error(`Failed to delete rating: ${error.message}`);
+    }
+  }
+};
+
+export const canUserEditRating = (rating: Rating): boolean => {
+  const currentUserId = getAnonymousUserId();
+  return rating.userId === currentUserId;
 }; 
