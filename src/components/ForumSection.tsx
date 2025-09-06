@@ -311,41 +311,6 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     }
   };
 
-  // Temporary function to fix existing posts without userId
-  const fixPostsWithoutUserId = async () => {
-    if (!currentUser) return;
-    
-    try {
-      console.log('Fixing posts without userId...');
-      
-      // Get all posts by current user that don't have userId
-      const userDisplayName = currentUser.displayName || currentUser.email || 'Student';
-      const postsToFix = posts.filter(post => 
-        !post.userId && 
-        (post.author === userDisplayName || 
-         post.author === (currentUser.displayName || 'Anonymous') ||
-         post.author === (currentUser.email?.split('@')[0] || 'Anonymous'))
-      );
-      
-      console.log(`Found ${postsToFix.length} posts to fix:`, postsToFix.map(p => p.title));
-      
-      for (const post of postsToFix) {
-        const postRef = doc(db, 'forumPosts', post.id);
-        await updateDoc(postRef, {
-          userId: currentUser.uid
-        });
-        console.log(`Fixed post: ${post.title}`);
-      }
-      
-      // Reload posts to see the changes
-      loadPosts();
-      
-      alert(`Fixed ${postsToFix.length} posts! Now notifications should work for your posts.`);
-    } catch (error) {
-      console.error('Error fixing posts:', error);
-      alert('Error fixing posts. Check console for details.');
-    }
-  };
 
   const handleReply = async () => {
     if (!replyContent.trim() || !currentUser) return;
@@ -426,33 +391,10 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
             📚 Forum
           </Typography>
           
-          {/* Temporary fix button for posts without userId */}
-          {currentUser && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={fixPostsWithoutUserId}
-              sx={{ 
-                color: 'white', 
-                borderColor: 'white',
-                '&:hover': {
-                  borderColor: '#cccccc',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                }
-              }}
-            >
-              Fix My Posts
-            </Button>
-          )}
         </Box>
         <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
           Ask questions, share ideas, discuss
         </Typography>
-        {currentUser && (
-          <Typography variant="caption" sx={{ color: '#999999', fontSize: '0.75rem', mt: 1, display: 'block' }}>
-            💡 If notifications aren't working, click "Fix My Posts" to enable them for your existing posts
-          </Typography>
-        )}
       </Paper>
 
       {/* AI-Powered Search */}

@@ -44,13 +44,3 @@ export interface CanteenRating {
   valueForMoney?: number; // 1-5 stars
   comment?: string;
 }
-
-export interface WaitTimePrediction {
-  canteenId: string;
-  predictedWaitTime: number;
-  confidence: number; // 0-1
-  basedOnEntries: number;
-  timeOfDay: string;
-  dayOfWeek: string;
-  lastUpdated: Date;
-}

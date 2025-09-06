@@ -51,8 +51,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { storeOccupancyData, getCurrentTimeInterval, getCurrentDayOfWeek } from '../services/mlPredictionService';
-import CanteenPredictionChart from './CanteenPredictionChart';
 
 interface FacilityReview {
   id: string;
@@ -166,24 +164,6 @@ const ReviewSection: React.FC = () => {
 
       await addDoc(collection(db, 'facilityReviews'), reviewData);
       
-      // Store occupancy data for ML predictions (for canteens and toilets)
-      if ((selectedType === 'canteen' || selectedType === 'toilet') && newReview.occupancyLevel && newReview.waitTime !== undefined) {
-        try {
-          await storeOccupancyData({
-            canteenId: `${newReview.name}-${newReview.location}`,
-            canteenName: newReview.name,
-            timestamp: Timestamp.now(),
-            occupancyLevel: newReview.occupancyLevel,
-            waitTime: newReview.waitTime,
-            dayOfWeek: getCurrentDayOfWeek(),
-            timeInterval: getCurrentTimeInterval(),
-            userId: currentUser.uid,
-          });
-        } catch (mlError) {
-          console.warn('Failed to store ML data:', mlError);
-          // Don't fail the review submission if ML data storage fails
-        }
-      }
       
       setNewReview({
         name: '',
@@ -467,16 +447,6 @@ const ReviewSection: React.FC = () => {
               </Grid>
             </Grid>
 
-            {/* ML Predictions for Canteens */}
-            {type.id === 'canteen' && (
-              <Box sx={{ mb: 3 }}>
-                <CanteenPredictionChart 
-                  canteenId="main-campus-canteen" 
-                  canteenName="Main Campus Canteen"
-                  onRefresh={loadReviews}
-                />
-              </Box>
-            )}
 
             {/* Smart Suggestions */}
             {type.id === 'canteen' && (
@@ -484,30 +454,15 @@ const ReviewSection: React.FC = () => {
                 <Typography variant="h6" gutterBottom>
                   💡 Smart Suggestions
                 </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      🍎 Study Snacks Available:
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      • Fresh fruit and yogurt parfaits<br/>
-                      • Energy bars and nuts<br/>
-                      • Coffee and tea selection<br/>
-                      • Healthy sandwich options
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      📊 Best Times to Visit:
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      • Early morning (7:00-8:30 AM)<br/>
-                      • Late afternoon (2:00-3:30 PM)<br/>
-                      • Evening (6:00-7:00 PM)<br/>
-                      • Avoid lunch rush (11:30 AM-1:00 PM)
-                    </Typography>
-                  </Grid>
-                </Grid>
+                <Typography variant="subtitle2" gutterBottom>
+                  🍎 Study Snacks Available:
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  • Fresh fruit and yogurt parfaits<br/>
+                  • Energy bars and nuts<br/>
+                  • Coffee and tea selection<br/>
+                  • Healthy sandwich options
+                </Typography>
               </Paper>
             )}
 
