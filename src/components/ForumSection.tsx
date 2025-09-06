@@ -51,6 +51,7 @@ import {
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import ForumSearch from './ForumSearch';
 
 interface ForumPost {
   id: string;
@@ -81,10 +82,13 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
   const { currentUser } = useAuth();
   const { addNotification } = useNotifications();
   const [posts, setPosts] = useState<ForumPost[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<ForumPost[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [highlightedPost, setHighlightedPost] = useState<string | null>(null);
 
   // New post form
   const [newPost, setNewPost] = useState({
@@ -106,6 +110,11 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     loadPosts();
   }, []);
 
+  // Filter posts when search query or category changes
+  useEffect(() => {
+    filterPosts();
+  }, [posts, searchQuery, selectedCategory]);
+
   const loadPosts = async () => {
     try {
       const postsRef = collection(db, 'forumPosts');
@@ -118,10 +127,98 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
       })) as ForumPost[];
       
       setPosts(postsData);
+      setFilteredPosts(postsData); // Initialize filtered posts
     } catch (error) {
       console.error('Error loading posts:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Filter posts based on search query and category
+  const filterPosts = () => {
+    let filtered = posts;
+
+    // Apply category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(post => post.category === selectedCategory);
+    }
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(post =>
+        post.title.toLowerCase().includes(query) ||
+        post.content.toLowerCase().includes(query) ||
+        post.author.toLowerCase().includes(query) ||
+        post.category.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredPosts(filtered);
+  };
+
+  // Handle search functionality
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    
+    // Track user search behavior for AI recommendations
+    if (currentUser && query.trim()) {
+      const interactions = JSON.parse(
+        localStorage.getItem(`forum_interactions_${currentUser.uid}`) || '{}'
+      );
+      
+      // Update search history and category preferences
+      interactions.searchHistory = [query, ...(interactions.searchHistory || []).slice(0, 9)];
+      
+      // Analyze search patterns to understand user preferences
+      const searchCategories = posts
+        .filter(post => 
+          post.title.toLowerCase().includes(query.toLowerCase()) ||
+          post.content.toLowerCase().includes(query.toLowerCase())
+        )
+        .map(post => post.category);
+      
+      searchCategories.forEach(category => {
+        interactions.viewedCategories = interactions.viewedCategories || {};
+        interactions.viewedCategories[category] = (interactions.viewedCategories[category] || 0) + 0.5;
+      });
+      
+      localStorage.setItem(`forum_interactions_${currentUser.uid}`, JSON.stringify(interactions));
+    }
+  };
+
+  // Handle post selection from search suggestions
+  const handlePostSelect = (postId: string) => {
+    setHighlightedPost(postId);
+    
+    // Scroll to the post
+    setTimeout(() => {
+      const element = document.getElementById(`post-${postId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    
+    // Clear highlight after 5 seconds
+    setTimeout(() => {
+      setHighlightedPost(null);
+    }, 5000);
+    
+    // Track user interaction
+    if (currentUser) {
+      const interactions = JSON.parse(
+        localStorage.getItem(`forum_interactions_${currentUser.uid}`) || '{}'
+      );
+      
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        interactions.viewedCategories = interactions.viewedCategories || {};
+        interactions.viewedCategories[post.category] = 
+          (interactions.viewedCategories[post.category] || 0) + 1;
+      }
+      
+      localStorage.setItem(`forum_interactions_${currentUser.uid}`, JSON.stringify(interactions));
     }
   };
 
@@ -243,9 +340,6 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     }
   };
 
-  const filteredPosts = selectedCategory === 'all' 
-    ? posts 
-    : posts.filter(post => post.category === selectedCategory);
 
   if (loading) {
     return (
@@ -266,6 +360,13 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
           Ask questions, share ideas, discuss
         </Typography>
       </Paper>
+
+      {/* AI-Powered Search */}
+      <ForumSearch
+        posts={posts}
+        onSearch={handleSearch}
+        onPostSelect={handlePostSelect}
+      />
 
       {/* Category Filters */}
       <Box sx={{ mb: 3 }}>
@@ -300,6 +401,28 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
         </Stack>
       </Box>
 
+      {/* Search Results Summary */}
+      {searchQuery && (
+        <Paper elevation={1} sx={{ p: 2, mb: 2, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
+          <Typography variant="body2" color="textSecondary">
+            {filteredPosts.length === 0 
+              ? `No results found for "${searchQuery}"` 
+              : `Found ${filteredPosts.length} result${filteredPosts.length !== 1 ? 's' : ''} for "${searchQuery}"`
+            }
+            <Button 
+              size="small" 
+              onClick={() => {
+                setSearchQuery('');
+                setHighlightedPost(null);
+              }}
+              sx={{ ml: 2, color: '#000000' }}
+            >
+              Clear Search
+            </Button>
+          </Typography>
+        </Paper>
+      )}
+
       {/* Posts List */}
       {filteredPosts.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
@@ -322,6 +445,7 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
           {filteredPosts.map((post) => (
             <Grid item xs={12} key={post.id}>
               <Card 
+                id={`post-${post.id}`}
                 elevation={2} 
                 sx={{ 
                   '&:hover': { elevation: 4 },
@@ -329,6 +453,12 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
                     border: '3px solid #000000',
                     boxShadow: '0 0 10px rgba(0,0,0,0.3)',
                     transition: 'all 0.3s ease'
+                  }),
+                  ...((highlightedPost === post.id || highlightedPostId === post.id) && {
+                    border: '3px solid #ff6b35',
+                    boxShadow: '0 0 15px rgba(255,107,53,0.4)',
+                    transition: 'all 0.3s ease',
+                    animation: 'glow 2s ease-in-out'
                   })
                 }}
               >
