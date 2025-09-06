@@ -4,32 +4,30 @@ A comprehensive web application designed to enhance student life with essential 
 
 ## 🌟 Features
 
-### 📚 Forum (论坛)
+### 📚Forum
 - **Question & Answer**: Students can post questions and get answers from peers
 - **Ideas & Discussions**: Share innovative ideas and engage in meaningful discussions
 - **Anonymous Posting**: Option to post anonymously for sensitive topics
 - **Real-time Interactions**: Like posts, reply to discussions, and build community
 
-### ⭐ 大众点评 (Campus Reviews)
+### ⭐Reviews
 - **Facility Ratings**: Rate and review toilets, canteens, and study spaces
 - **Course & Professor Reviews**: Help fellow students choose the best courses and instructors
 - **Real-time Occupancy**: Color-coded system showing facility traffic levels
-- **Wait Time Tracking**: Know expected wait times before visiting busy locations
 
-### 🤝 Connection (+ 知识付费)
+### 🤝Connect
 - **Student Profiles**: Create detailed profiles with major, hobbies, and skills
 - **Knowledge Marketplace**: Students can offer tutoring services for payment
 - **Skill Matching**: Find students with specific skills or expertise
 - **Peer-to-Peer Learning**: Connect with classmates for study groups and academic help
+- **Pocket-Money**: User trade their experiences and skills to gain money 
 
-### 🔗 Resources
-- **Essential Links**: Curated collection of useful websites (LinkedIn, GitHub, Khan Academy, etc.)
-- **Category Organization**: Resources organized by Career, Academic, Programming, Health, etc.
-- **Community Contributions**: Students can add and recommend new resources
-- **Bookmark System**: Save frequently used resources for quick access
+### 🔗 MarketPlace
+- **Sell Your Product**: Maximise your product's last value through selling it
+- **Category Organization**: Product categorized for easy research
+- **Saving Option**: Save interested products for easy research in future
 
 ## 🚀 Technology Stack
-
 - **Frontend**: React 19 with TypeScript
 - **UI Framework**: Material-UI (MUI) with custom theming
 - **Backend**: Firebase (Firestore, Authentication, Analytics)
