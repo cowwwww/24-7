@@ -35,6 +35,89 @@ A comprehensive web application designed to enhance student life with essential 
 - **Routing**: React Router DOM
 - **Build Tool**: Vite
 
+## Code Logic + Info
+
+### 🚀 Technology Stack
+**Frontend**: React 19 with TypeScript
+**UI Framework**: Material-UI (MUI) with custom theming
+**Backend**: Firebase (Firestore, Authentication, Analytics)
+**State Management**: React Hooks
+**Routing**: React Router DOM
+**Build Tool**: Vite
+
+### 🧭 Architecture Overview
+**App Shell**: App wraps the app with AuthProvider and NotificationProvider, then renders MainApp.
+**Sectioned UI**: MainApp swaps four sections (Forum, Reviews, Connect, Resources) via tabs; content renders through a TabPanel.
+**Responsive Nav**: Top tabs on desktop; fixed bottom tabs on mobile.
+**Theme System**: Single MUI theme (monochrome) with component overrides for AppBar, Tabs, Container, Card.
+
+### 📦 Core Modules
+**ForumSection / ReviewSection / ConnectionSection / ResourceSection**: Lazy-swappable feature modules; each can accept highlightedPostId to focus content.
+**Auth Components**: Login, Signup, UserProfile handle auth dialogs, profile menu, and account actions.
+**Notifications**: NotificationProvider exposes unreadCount; bell icon shows a badge.
+
+### 🔐 Authentication & Identity
+**Auth Source**: Firebase Authentication (email/password, optionally OAuth).
+**Identity Display**: getDisplayName() derives a friendly name; Avatar initial computed by getAvatarLetter().
+**Access Control**: Auth state toggles UI (login/signup vs. profile/avatar); sections can read currentUser for gated features.
+
+### 🔔 Cross-Section Navigation
+**Deep Link Event**: Listens to a custom DOM event navigateToPost with { section, postId }.
+**Section Map**: 'forum' → 0, 'reviews' → 1, 'connection' → 2, 'resources' → 3.
+**Highlighting**: Sets highlightedPostId for the active section and clears it after 5 seconds.
+
+### 🧩 UI/UX Behavior
+**Accessibility**: Tabs/TabPanels wired with aria-controls, role="tabpanel", and a11yProps.
+**Mobile Spacing**: Main container adds bottom margin so content isn’t hidden behind the fixed bottom tab bar.
+**Visual Language**: Clean, monochrome palette; rounded cards; subtle shadows.
+
+### 🗄️ Data Model (Firestore suggested)
+**Profiles**: profiles/{uid} → { name, major, year, hobbies, skills[], pricePerHour, contactPhone, contactVisible, ratingAvg, ratingCount }.
+**Profile Reviews**: profiles/{uid}/reviews/{reviewId} → { rating, comment, reviewerId, reviewerName, createdAt }.
+**Forum/Reviews/Resources**: Each section maintains its own collection(s) (e.g., posts, ratings, links) with created/updated timestamps and author IDs.
+**Notifications**: notifications/{uid}/{notifId} → { type, section, postId, read, createdAt }.
+
+### 🔎 Search & Discovery
+**Keyword Search (Forum)**: Client queries Firestore with indexed fields (title/body/tags).
+**Related Content**: When a keyword matches, show related posts (same tags/keywords).
+**Ranking**: Combine recency + engagement (comments/upvotes) for result ordering.
+
+### 🔗 Connect (Profiles & Paid Help)
+**Create/Edit Profile**: Authenticated users can create/update their profile card.
+**Contact Visibility**: contactVisible toggles whether phone/email is shown; default hidden for privacy.
+**Ratings & Comments**: Users can rate and leave comments on other profiles; aggregates update ratingAvg/ratingCount.
+**Browsing**: Grid/list of profiles with filters (major, skills, price range, rating).
+
+### 🧠 State Management
+**Local Component State**: React hooks (useState, useEffect) for UI state (dialogs, current tab, highlight).
+**Context State**: Auth and notifications via providers; sections subscribe as needed.
+
+### 🧭 Routing (if enabled)
+**Tab ↔ Route Sync**: Map each tab to a route (/forum, /reviews, /connect, /resources) using React Router; persist selected tab via URL.
+**Deep Links**: Support /:section/:id to open a specific post/profile and trigger highlighting.
+
+### 🧪 Analytics & Telemetry
+**Firebase Analytics**: Log page views (tab switches), search queries (anonymized), and engagement (post created, review left).
+**KPIs**: Time-to-first-answer (forum), profile contact conversions, rating volume, resource click-through.
+
+### 🔐 Security & Privacy
+**Rules**: Firestore Security Rules enforce read/write by auth state and document ownership; reviews can’t be edited by the reviewee.
+**PII**: Mask contact by default; optional “request contact” workflow.
+**Abuse Controls**: Rate-limit posting/reviews; allow report/flag actions.
+
+### 🧰 Build & Dev
+**Vite**: Fast dev server and TS build.
+**Env Config**: API keys/secrets in .env with Vite’s import.meta.env.
+**Code Quality**: ESLint + Prettier recommended; strict TS for component props.
+
+### ⚠️ Known Gaps / Next Steps
+**Router Integration**: Currently tabs are state-only; add React Router for shareable links.
+**Notifications UI**: Bell and avatar open the same menu—split into distinct popovers.
+**Mobile Overflow Menu**: Menu/MenuItem and mobileMenuAnchor are present but unused—implement or remove.
+**Search Indexing**: For scalable search, consider Firestore + Algolia (or Meilisearch) for full-text indexes.
+
+
+
 ## 🛠️ Setup Instructions
 
 1. **Clone the repository**
