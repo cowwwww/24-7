@@ -36,6 +36,15 @@ import {
   QuestionAnswer as QuestionIcon,
   Lightbulb as IdeaIcon,
   School as StudyIcon,
+  Home as LifeIcon,
+  MenuBook as StudyZoneIcon,
+  Favorite as ConfessionIcon,
+  Psychology as TreeHoleIcon,
+  Restaurant as FoodIcon,
+  FlightTakeoff as TravelIcon,
+  ContentCut as HaircutIcon,
+  Business as HousingIcon,
+  LibraryBooks as MaterialsIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -62,7 +71,7 @@ interface ForumPost {
   author: string;
   userId?: string;
   isAnonymous: boolean;
-  category: 'question' | 'idea' | 'discussion';
+  category: 'question' | 'idea' | 'discussion' | 'life' | 'study' | 'confession' | 'treehole' | 'food' | 'travel' | 'haircut' | 'housing' | 'materials';
   timestamp: Timestamp;
   likes: string[];
   replies: Reply[];
@@ -98,7 +107,7 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     title: '',
     content: '',
     isAnonymous: false,
-    category: 'discussion' as 'question' | 'idea' | 'discussion',
+    category: 'discussion' as 'question' | 'idea' | 'discussion' | 'life' | 'study' | 'confession' | 'treehole' | 'food' | 'travel' | 'haircut' | 'housing' | 'materials',
   });
 
   // Reply form
@@ -396,6 +405,16 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     switch (category) {
       case 'question': return <QuestionIcon />;
       case 'idea': return <IdeaIcon />;
+      case 'discussion': return <StudyIcon />;
+      case 'life': return <LifeIcon />;
+      case 'study': return <StudyZoneIcon />;
+      case 'confession': return <ConfessionIcon />;
+      case 'treehole': return <TreeHoleIcon />;
+      case 'food': return <FoodIcon />;
+      case 'travel': return <TravelIcon />;
+      case 'haircut': return <HaircutIcon />;
+      case 'housing': return <HousingIcon />;
+      case 'materials': return <MaterialsIcon />;
       default: return <StudyIcon />;
     }
   };
@@ -404,6 +423,16 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
     switch (category) {
       case 'question': return '#666666';
       case 'idea': return '#333333';
+      case 'discussion': return '#000000';
+      case 'life': return '#4CAF50';
+      case 'study': return '#2196F3';
+      case 'confession': return '#E91E63';
+      case 'treehole': return '#9C27B0';
+      case 'food': return '#FF9800';
+      case 'travel': return '#00BCD4';
+      case 'haircut': return '#795548';
+      case 'housing': return '#607D8B';
+      case 'materials': return '#3F51B5';
       default: return '#000000';
     }
   };
@@ -492,6 +521,69 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
             onClick={() => setSelectedCategory('discussion')}
             sx={{ mb: 1 }}
           />
+          <Chip
+            icon={<LifeIcon />}
+            label="生活区"
+            variant={selectedCategory === 'life' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('life')}
+            sx={{ mb: 1 }}
+          />
+          <Chip
+            icon={<StudyZoneIcon />}
+            label="学习区"
+            variant={selectedCategory === 'study' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('study')}
+            sx={{ mb: 1 }}
+          />
+          <Chip
+            icon={<ConfessionIcon />}
+            label="表白墙"
+            variant={selectedCategory === 'confession' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('confession')}
+            sx={{ mb: 1 }}
+          />
+          <Chip
+            icon={<TreeHoleIcon />}
+            label="树洞"
+            variant={selectedCategory === 'treehole' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('treehole')}
+            sx={{ mb: 1 }}
+          />
+          <Chip
+            icon={<FoodIcon />}
+            label="美食"
+            variant={selectedCategory === 'food' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('food')}
+            sx={{ mb: 1 }}
+          />
+          <Chip
+            icon={<TravelIcon />}
+            label="旅游"
+            variant={selectedCategory === 'travel' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('travel')}
+            sx={{ mb: 1 }}
+          />
+          <Chip
+            icon={<HaircutIcon />}
+            label="剪头发"
+            variant={selectedCategory === 'haircut' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('haircut')}
+            sx={{ mb: 1 }}
+          />
+          <Chip
+            icon={<HousingIcon />}
+            label="生活经验"
+            variant={selectedCategory === 'housing' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('housing')}
+            sx={{ mb: 1 }}
+          />
+          <Chip
+            icon={<MaterialsIcon />}
+            label="学习资料区"
+            variant={selectedCategory === 'materials' ? 'filled' : 'outlined'}
+            onClick={() => setSelectedCategory('materials')}
+            sx={{ mb: 1 }}
+          />
         </Stack>
       </Box>
 
@@ -535,9 +627,9 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
           </Button>
         </Paper>
       ) : (
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'grid', gap: 2 }}>
           {filteredPosts.map((post) => (
-            <Grid item xs={12} key={post.id}>
+            <Box key={post.id}>
               <Card 
                 id={`post-${post.id}`}
                 elevation={2} 
@@ -639,9 +731,9 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
                   )}
                 </CardContent>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       )}
 
       {/* Floating Action Button */}
@@ -675,6 +767,15 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
               <MenuItem value="question">❓ Question</MenuItem>
               <MenuItem value="idea">💡 Idea</MenuItem>
               <MenuItem value="discussion">💬 Discussion</MenuItem>
+              <MenuItem value="life">🏠 生活区</MenuItem>
+              <MenuItem value="study">📚 学习区</MenuItem>
+              <MenuItem value="confession">💕 表白墙</MenuItem>
+              <MenuItem value="treehole">🕳️ 树洞</MenuItem>
+              <MenuItem value="food">🍜 美食</MenuItem>
+              <MenuItem value="travel">✈️ 旅游</MenuItem>
+              <MenuItem value="haircut">✂️ 剪头发</MenuItem>
+              <MenuItem value="housing">🏘️ 生活经验</MenuItem>
+              <MenuItem value="materials">📖 学习资料区</MenuItem>
             </TextField>
 
             <TextField
