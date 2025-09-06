@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/firebase.ts","./src/main.tsx","./src/components/addprofessor.tsx","./src/components/professordetail.tsx","./src/services/professorservice.ts","./src/services/ratingservice.ts","./src/types/professor.ts","./src/types/rating.ts"],"version":"5.8.3"}

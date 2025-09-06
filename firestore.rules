@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 用户只能读写自己的数据
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // 主办方可以管理自己的赛事
+    match /tournaments/{tournamentId} {
+      allow read: if true; // 公开可读，包括匿名用户
+      allow write: if request.auth != null && 
+        (request.auth.uid == resource.data.organizerId || 
+         hasRole('admin'));
+    }
+    
+    // 题目集合允许公开读取和认证用户写入
+    match /topic/{topicId} {
+      allow read: if true; // 允许所有人读取题目
+      allow write: if request.auth != null; // 认证用户可以添加题目
+    }
+    
+    // 报名信息访问控制
+    match /registrations/{registrationId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.participantId || 
+         request.auth.uid == getTournamentOrganizer(resource.data.tournamentId));
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && 
+        request.auth.uid == getTournamentOrganizer(resource.data.tournamentId);
+    }
+    
+    // 订阅和支付记录只能由用户自己访问
+    match /subscriptions/{subscriptionId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+    }
+    
+    match /payments/{paymentId} {
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null;
+    }
+    
+    // AI使用记录
+    match /aiUsageLogs/{logId} {
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null;
+    }
+    
+    // 比赛相关的集合允许创建（项目创建功能）
+    match /competitions/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // 资源集合
+    match /resources/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // 计时器集合 - 这是项目功能使用的主要集合
+    match /timer/{document=**} {
+      allow read: if true; // 允许所有人读取计时器项目
+      allow write: if true; // 临时允许所有人创建，生产环境应该要求认证
+    }
+
+    // 评委集合
+    match /judge/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // 辅助函数
+    function hasRole(role) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+    
+    function getTournamentOrganizer(tournamentId) {
+      return get(/databases/$(database)/documents/tournaments/$(tournamentId)).data.organizerId;
+    }
+    
+      match /ratings/{ratingId} {
+        allow read: if true;
+
+        // Create: must be logged in, use your own UID as the ratingId,
+        // and the score must be 1–5
+        allow create: if request.auth != null
+          && request.auth.uid == ratingId
+          && request.resource.data.keys().hasOnly(['score','createdAt'])
+          && request.resource.data.score is int
+          && request.resource.data.score >= 1
+          && request.resource.data.score <= 5
+          && request.resource.data.createdAt == request.time;
+
+        // Update: only the same user can change their own rating,
+        // and you can only change score within 1–5
+        allow update: if request.auth != null
+          && request.auth.uid == resource.id
+          && request.resource.data.score is int
+          && request.resource.data.score >= 1
+          && request.resource.data.score <= 5
+          && request.resource.data.createdAt == resource.data.createdAt;
+
+        // Delete: only the owner can delete their rating
+        allow delete: if request.auth != null
+          && request.auth.uid == resource.id;
+      }
+    
+  }
+}
