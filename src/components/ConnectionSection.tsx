@@ -408,14 +408,7 @@ const ConnectionSection: React.FC = () => {
   return (
     <Box>
       {/* Header */}
-      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
-        <Typography variant="h5" component="h1" sx={{ color: 'white', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-          🤝 Connect & Knowledge Marketplace
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          Find study partners, tutors & paid academic help
-        </Typography>
-      </Paper>
+
 
       {/* Navigation Tabs */}
       <Paper sx={{ mb: 3 }}>
@@ -430,8 +423,8 @@ const ConnectionSection: React.FC = () => {
 
       {/* Search and Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <TextField
               fullWidth
               size="small"
@@ -446,14 +439,21 @@ const ConnectionSection: React.FC = () => {
                 ),
               }}
             />
-          </Grid>
-          <Grid item xs={12} md={2}>
+          </Box>
+          <Box sx={{ flex: '0 0 160px', minWidth: 160 }}>
             <FormControl fullWidth size="small">
               <InputLabel>Major</InputLabel>
               <Select
                 value={selectedMajor}
                 onChange={(e) => setSelectedMajor(e.target.value)}
                 label="Major"
+                sx={{ 
+                  '& .MuiSelect-select': { 
+                    paddingRight: '32px !important',
+                    minWidth: 'fit-content',
+                    whiteSpace: 'nowrap'
+                  } 
+                }}
               >
                 <MenuItem value="">All Majors</MenuItem>
                 {majors.map(major => (
@@ -461,14 +461,21 @@ const ConnectionSection: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
+          </Box>
+          <Box sx={{ flex: '0 0 160px', minWidth: 160 }}>
             <FormControl fullWidth size="small">
-              <InputLabel>Skill</InputLabel>
+              <InputLabel>Skills</InputLabel>
               <Select
                 value={selectedSkill}
                 onChange={(e) => setSelectedSkill(e.target.value)}
-                label="Skill"
+                label="Skills"
+                sx={{ 
+                  '& .MuiSelect-select': { 
+                    paddingRight: '32px !important',
+                    minWidth: 'fit-content',
+                    whiteSpace: 'nowrap'
+                  } 
+                }}
               >
                 <MenuItem value="">All Skills</MenuItem>
                 {popularSkills.map(skill => (
@@ -476,15 +483,22 @@ const ConnectionSection: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
+          </Box>
           {currentTab === 1 && (
-            <Grid item xs={12} md={2}>
+            <Box sx={{ flex: '0 0 180px', minWidth: 180 }}>
               <FormControl fullWidth size="small">
                 <InputLabel>Price Range</InputLabel>
                 <Select
                   value={priceRange}
                   onChange={(e) => setPriceRange(e.target.value)}
                   label="Price Range"
+                  sx={{ 
+                    '& .MuiSelect-select': { 
+                      paddingRight: '32px !important',
+                      minWidth: 'fit-content',
+                      whiteSpace: 'nowrap'
+                    } 
+                  }}
                 >
                   <MenuItem value="">Any Price</MenuItem>
                   <MenuItem value="0-10">$0-10/hour</MenuItem>
@@ -493,9 +507,9 @@ const ConnectionSection: React.FC = () => {
                   <MenuItem value="30-">$30+/hour</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
           )}
-          <Grid item xs={12} md={3}>
+          <Box sx={{ flex: '0 0 180px', minWidth: 180 }}>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -504,16 +518,16 @@ const ConnectionSection: React.FC = () => {
             >
               Create Profile
             </Button>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Paper>
 
       {/* Tab Content */}
       <TabPanel value={currentTab} index={0}>
         {/* All Students */}
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
           {getFilteredProfiles().map((profile) => (
-            <Grid item xs={12} md={6} lg={4} key={profile.id}>
+            <Box key={profile.id}>
               <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box display="flex" alignItems="center" gap={2} mb={2}>
@@ -658,14 +672,14 @@ const ConnectionSection: React.FC = () => {
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </TabPanel>
 
       <TabPanel value={currentTab} index={1}>
         {/* Tutors */}
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
           {getTutors().filter(profile => {
             if (searchTerm) {
               return profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -679,7 +693,7 @@ const ConnectionSection: React.FC = () => {
             }
             return true;
           }).map((profile) => (
-            <Grid item xs={12} md={6} lg={4} key={profile.id}>
+            <Box key={profile.id}>
               <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box display="flex" alignItems="center" gap={2} mb={2}>
@@ -792,9 +806,9 @@ const ConnectionSection: React.FC = () => {
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
 
         {getTutors().length === 0 && (
           <Paper sx={{ p: 4, textAlign: 'center' }}>
@@ -828,22 +842,20 @@ const ConnectionSection: React.FC = () => {
               required
             />
 
-            <Grid container spacing={2}>
-              <Grid item xs={8}>
-                <FormControl fullWidth>
-                  <InputLabel>Major</InputLabel>
-                  <Select
-                    value={newProfile.major}
-                    onChange={(e) => setNewProfile({ ...newProfile, major: e.target.value })}
-                    label="Major"
-                  >
-                    {majors.map(major => (
-                      <MenuItem key={major} value={major}>{major}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={4}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Major</InputLabel>
+                <Select
+                  value={newProfile.major}
+                  onChange={(e) => setNewProfile({ ...newProfile, major: e.target.value })}
+                  label="Major"
+                >
+                  {majors.map(major => (
+                    <MenuItem key={major} value={major}>{major}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Box>
                 <TextField
                   label="Year"
                   type="number"
@@ -852,8 +864,8 @@ const ConnectionSection: React.FC = () => {
                   inputProps={{ min: 1, max: 6 }}
                   fullWidth
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             <TextField
               label="Bio"
@@ -870,22 +882,20 @@ const ConnectionSection: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 📞 Contact Details (Required)
               </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Email Address"
-                    type="email"
-                    value={newProfile.contactDetails.email}
-                    onChange={(e) => setNewProfile({ 
-                      ...newProfile, 
-                      contactDetails: { ...newProfile.contactDetails, email: e.target.value }
-                    })}
-                    fullWidth
-                    required
-                    placeholder="your.email@university.edu"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                <TextField
+                  label="Email Address"
+                  type="email"
+                  value={newProfile.contactDetails.email}
+                  onChange={(e) => setNewProfile({ 
+                    ...newProfile, 
+                    contactDetails: { ...newProfile.contactDetails, email: e.target.value }
+                  })}
+                  fullWidth
+                  required
+                  placeholder="your.email@university.edu"
+                />
+                <Box>
                   <TextField
                     label="Phone Number (Optional)"
                     type="tel"
@@ -897,8 +907,9 @@ const ConnectionSection: React.FC = () => {
                     fullWidth
                     placeholder="(555) 123-4567"
                   />
-                </Grid>
-                <Grid item xs={12}>
+                </Box>
+              </Box>
+              <Box>
                   <FormControl fullWidth>
                     <InputLabel>Preferred Contact Method</InputLabel>
                     <Select
@@ -914,8 +925,7 @@ const ConnectionSection: React.FC = () => {
                       <MenuItem value="both">Both Email & Phone</MenuItem>
                     </Select>
                   </FormControl>
-                </Grid>
-              </Grid>
+                </Box>
             </Box>
 
             {/* Hobbies */}
