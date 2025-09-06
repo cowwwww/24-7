@@ -57,6 +57,15 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
+interface UserRating {
+  id: string;
+  raterId: string;
+  raterName: string;
+  rating: number;
+  comment: string;
+  timestamp: Timestamp;
+}
+
 interface StudentProfile {
   id: string;
   name: string;
@@ -65,6 +74,11 @@ interface StudentProfile {
   hobbies: string[];
   bio: string;
   skills: string[];
+  contactDetails: {
+    email: string;
+    phone?: string;
+    preferredContact: 'email' | 'phone' | 'both';
+  };
   helpOffering: {
     isOffering: boolean;
     subjects: string[];
@@ -73,6 +87,7 @@ interface StudentProfile {
     rating: number;
     completedSessions: number;
   };
+  ratings: UserRating[];
   avatar?: string;
   verified: boolean;
   timestamp: Timestamp;
@@ -116,17 +131,33 @@ const ConnectionSection: React.FC = () => {
     bio: '',
     hobbies: [] as string[],
     skills: [] as string[],
+    contactDetails: {
+      email: '',
+      phone: '',
+      preferredContact: 'email' as 'email' | 'phone' | 'both',
+    },
     helpOffering: {
       isOffering: false,
       subjects: [] as string[],
       pricePerHour: 0,
       description: '',
     },
+    ratings: [] as UserRating[],
   });
 
   const [hobbyInput, setHobbyInput] = useState('');
   const [skillInput, setSkillInput] = useState('');
   const [subjectInput, setSubjectInput] = useState('');
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [selectedProfileForRating, setSelectedProfileForRating] = useState<StudentProfile | null>(null);
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [ratingComment, setRatingComment] = useState('');
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [selectedProfileForContact, setSelectedProfileForContact] = useState<StudentProfile | null>(null);
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [selectedProfileForComment, setSelectedProfileForComment] = useState<StudentProfile | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [newCommentRating, setNewCommentRating] = useState<number | null>(null);
 
   const majors = [
     'Computer Science', 'Engineering', 'Business', 'Mathematics', 'Physics',
@@ -171,7 +202,7 @@ const ConnectionSection: React.FC = () => {
   };
 
   const handleSubmitProfile = async () => {
-    if (!newProfile.name.trim() || !newProfile.major.trim()) {
+    if (!newProfile.name.trim() || !newProfile.major.trim() || !newProfile.contactDetails.email.trim()) {
       return;
     }
 
@@ -183,6 +214,7 @@ const ConnectionSection: React.FC = () => {
           rating: 5.0,
           completedSessions: 0,
         },
+        ratings: [],
         verified: false,
         timestamp: Timestamp.now(),
       };
@@ -196,12 +228,18 @@ const ConnectionSection: React.FC = () => {
         bio: '',
         hobbies: [],
         skills: [],
+        contactDetails: {
+          email: '',
+          phone: '',
+          preferredContact: 'email',
+        },
         helpOffering: {
           isOffering: false,
           subjects: [],
           pricePerHour: 0,
           description: '',
         },
+        ratings: [],
       });
       setOpenDialog(false);
       loadProfiles();
@@ -302,6 +340,61 @@ const ConnectionSection: React.FC = () => {
 
   const getTutors = () => {
     return profiles.filter(profile => profile.helpOffering.isOffering);
+  };
+
+  const handleConnectClick = (profile: StudentProfile) => {
+    setSelectedProfileForRating(profile);
+    setRatingDialogOpen(true);
+  };
+
+  const handleContactClick = (profile: StudentProfile) => {
+    setSelectedProfileForContact(profile);
+    setContactDialogOpen(true);
+  };
+
+  const handleCommentClick = (profile: StudentProfile) => {
+    setSelectedProfileForComment(profile);
+    setCommentDialogOpen(true);
+  };
+
+  const handleSubmitComment = () => {
+    if (newCommentRating && newCommentRating > 0 && newComment.trim()) {
+      // Here you would typically save the comment to your database
+      console.log('Comment submitted:', {
+        profileId: selectedProfileForComment?.id,
+        rating: newCommentRating,
+        comment: newComment
+      });
+      
+      // Close dialog and reset
+      setCommentDialogOpen(false);
+      setNewCommentRating(null);
+      setNewComment('');
+      setSelectedProfileForComment(null);
+      
+      // Show success message
+      alert('Thank you for your comment! Your feedback has been submitted.');
+    }
+  };
+
+  const handleSubmitRating = () => {
+    if (userRating && userRating > 0) {
+      // Here you would typically save the rating to your database
+      console.log('Rating submitted:', {
+        profileId: selectedProfileForRating?.id,
+        rating: userRating,
+        comment: ratingComment
+      });
+      
+      // Close dialog and reset
+      setRatingDialogOpen(false);
+      setUserRating(null);
+      setRatingComment('');
+      setSelectedProfileForRating(null);
+      
+      // Show success message or proceed with connection
+      alert('Thank you for your rating! You can now connect with this student.');
+    }
   };
 
   if (loading) {
@@ -433,9 +526,9 @@ const ConnectionSection: React.FC = () => {
                         {profile.name.split(' ').map(n => n[0]).join('')}
                       </Avatar>
                     </Badge>
-                    <Box>
-                      <Typography variant="h6">{profile.name}</Typography>
-                      <Typography variant="body2" color="textSecondary">
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="h6" sx={{ wordBreak: 'break-word' }}>{profile.name}</Typography>
+                      <Typography variant="body2" color="textSecondary" sx={{ wordBreak: 'break-word' }}>
                         {profile.major} • Year {profile.year}
                       </Typography>
                     </Box>
@@ -476,49 +569,93 @@ const ConnectionSection: React.FC = () => {
                       <Typography variant="caption" color="textSecondary">
                         Skills:
                       </Typography>
-                      <Box mt={0.5}>
-                        {profile.skills.slice(0, 3).map((skill) => (
+                      <Box mt={0.5} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {profile.skills.map((skill) => (
                           <Chip
                             key={skill}
                             icon={getSkillIcon(skill)}
                             label={skill}
                             size="small"
-                            sx={{ mr: 0.5, mb: 0.5, fontSize: '0.7rem' }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              minWidth: 'fit-content',
+                              whiteSpace: 'nowrap',
+                              '& .MuiChip-label': {
+                                whiteSpace: 'nowrap',
+                                overflow: 'visible'
+                              }
+                            }}
                           />
                         ))}
-                        {profile.skills.length > 3 && (
-                          <Typography variant="caption" color="textSecondary">
-                            +{profile.skills.length - 3} more
-                          </Typography>
-                        )}
                       </Box>
                     </Box>
                   )}
 
                   {profile.helpOffering.isOffering && (
-                  <Paper sx={{ p: 1, bgcolor: '#f5f5f5', border: '1px solid #000000' }}>
-                    <Typography variant="caption" color="primary" fontWeight="bold">
+                  <Paper sx={{ p: 2, bgcolor: '#f5f5f5', border: '1px solid #000000', mb: 2 }}>
+                    <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom>
                       💡 Offering Help:
                     </Typography>
-                      <Typography variant="body2">
+                    <Box sx={{ mb: 1 }}>
+                      <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
                         {profile.helpOffering.subjects.join(', ')}
                       </Typography>
-                      <Typography variant="body2" color="primary" fontWeight="bold">
-                        ${profile.helpOffering.pricePerHour}/hour
-                      </Typography>
+                    </Box>
+                    <Typography variant="h6" color="primary" fontWeight="bold" sx={{ whiteSpace: 'nowrap' }}>
+                      ${profile.helpOffering.pricePerHour}/hour
+                    </Typography>
                     </Paper>
+                  )}
+
+                  {/* Ratings and Comments Section */}
+                  {profile.ratings && profile.ratings.length > 0 && (
+                    <Box mb={2}>
+                      <Typography variant="caption" color="textSecondary" gutterBottom>
+                        Recent Reviews:
+                      </Typography>
+                      <Box sx={{ maxHeight: '120px', overflowY: 'auto' }}>
+                        {profile.ratings.slice(0, 2).map((rating) => (
+                          <Paper key={rating.id} sx={{ p: 1, mb: 1, bgcolor: '#f9f9f9' }}>
+                            <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                              <Rating value={rating.rating} readOnly size="small" />
+                              <Typography variant="caption" color="textSecondary">
+                                by {rating.raterName}
+                              </Typography>
+                            </Box>
+                            {rating.comment && (
+                              <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                "{rating.comment}"
+                              </Typography>
+                            )}
+                          </Paper>
+                        ))}
+                        {profile.ratings.length > 2 && (
+                          <Typography variant="caption" color="textSecondary">
+                            +{profile.ratings.length - 2} more reviews
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
                   )}
                 </CardContent>
 
                 <CardActions>
-                  <Button size="small" startIcon={<ChatIcon />}>
-                    Connect
+                  <Button 
+                    size="small" 
+                    startIcon={<StarIcon />}
+                    onClick={() => handleCommentClick(profile)}
+                    color="primary"
+                  >
+                    Rate & Comment
                   </Button>
-                  {profile.helpOffering.isOffering && (
-                    <Button size="small" startIcon={<MoneyIcon />} color="primary">
-                      Book Session
-                    </Button>
-                  )}
+                  <Button 
+                    size="small" 
+                    startIcon={<PersonIcon />}
+                    onClick={() => handleContactClick(profile)}
+                    color="secondary"
+                  >
+                    Contact Info
+                  </Button>
                 </CardActions>
               </Card>
             </Grid>
@@ -570,21 +707,28 @@ const ConnectionSection: React.FC = () => {
                   </Box>
 
                 <Paper sx={{ p: 2, bgcolor: '#f5f5f5', mb: 2 }}>
-                  <Typography variant="h5" color="primary" fontWeight="bold" gutterBottom>
+                  <Typography variant="h5" color="primary" fontWeight="bold" gutterBottom sx={{ whiteSpace: 'nowrap' }}>
                     ${profile.helpOffering.pricePerHour}/hour
                   </Typography>
                     
                     <Typography variant="subtitle2" gutterBottom>
                       Subjects:
                     </Typography>
-                    <Box mb={1}>
+                    <Box mb={1} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                       {profile.helpOffering.subjects.map((subject) => (
                         <Chip
                           key={subject}
                           label={subject}
                           size="small"
                           color="primary"
-                          sx={{ mr: 0.5, mb: 0.5 }}
+                          sx={{ 
+                            minWidth: 'fit-content',
+                            whiteSpace: 'nowrap',
+                            '& .MuiChip-label': {
+                              whiteSpace: 'nowrap',
+                              overflow: 'visible'
+                            }
+                          }}
                         />
                       ))}
                     </Box>
@@ -606,14 +750,22 @@ const ConnectionSection: React.FC = () => {
                       <Typography variant="caption" color="textSecondary">
                         Additional Skills:
                       </Typography>
-                      <Box mt={0.5}>
-                        {profile.skills.slice(0, 3).map((skill) => (
+                      <Box mt={0.5} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {profile.skills.map((skill) => (
                           <Chip
                             key={skill}
                             label={skill}
                             size="small"
                             variant="outlined"
-                            sx={{ mr: 0.5, mb: 0.5, fontSize: '0.7rem' }}
+                            sx={{ 
+                              fontSize: '0.75rem',
+                              minWidth: 'fit-content',
+                              whiteSpace: 'nowrap',
+                              '& .MuiChip-label': {
+                                whiteSpace: 'nowrap',
+                                overflow: 'visible'
+                              }
+                            }}
                           />
                         ))}
                       </Box>
@@ -622,8 +774,21 @@ const ConnectionSection: React.FC = () => {
                 </CardContent>
 
                 <CardActions>
-                  <Button variant="contained" startIcon={<MoneyIcon />} fullWidth>
-                    Book Session - ${profile.helpOffering.pricePerHour}/hr
+                  <Button 
+                    size="small" 
+                    startIcon={<StarIcon />}
+                    onClick={() => handleCommentClick(profile)}
+                    color="primary"
+                  >
+                    Rate & Comment
+                  </Button>
+                  <Button 
+                    size="small" 
+                    startIcon={<PersonIcon />}
+                    onClick={() => handleContactClick(profile)}
+                    color="secondary"
+                  >
+                    Contact Info
                   </Button>
                 </CardActions>
               </Card>
@@ -699,6 +864,59 @@ const ConnectionSection: React.FC = () => {
               rows={2}
               placeholder="Tell us about yourself..."
             />
+
+            {/* Contact Details Section */}
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                📞 Contact Details (Required)
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Email Address"
+                    type="email"
+                    value={newProfile.contactDetails.email}
+                    onChange={(e) => setNewProfile({ 
+                      ...newProfile, 
+                      contactDetails: { ...newProfile.contactDetails, email: e.target.value }
+                    })}
+                    fullWidth
+                    required
+                    placeholder="your.email@university.edu"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Phone Number (Optional)"
+                    type="tel"
+                    value={newProfile.contactDetails.phone}
+                    onChange={(e) => setNewProfile({ 
+                      ...newProfile, 
+                      contactDetails: { ...newProfile.contactDetails, phone: e.target.value }
+                    })}
+                    fullWidth
+                    placeholder="(555) 123-4567"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Preferred Contact Method</InputLabel>
+                    <Select
+                      value={newProfile.contactDetails.preferredContact}
+                      onChange={(e) => setNewProfile({ 
+                        ...newProfile, 
+                        contactDetails: { ...newProfile.contactDetails, preferredContact: e.target.value as 'email' | 'phone' | 'both' }
+                      })}
+                      label="Preferred Contact Method"
+                    >
+                      <MenuItem value="email">Email Only</MenuItem>
+                      <MenuItem value="phone">Phone Only</MenuItem>
+                      <MenuItem value="both">Both Email & Phone</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </Box>
 
             {/* Hobbies */}
             <Box>
@@ -830,9 +1048,164 @@ const ConnectionSection: React.FC = () => {
           <Button 
             onClick={handleSubmitProfile} 
             variant="contained"
-            disabled={!newProfile.name.trim() || !newProfile.major.trim()}
+            disabled={!newProfile.name.trim() || !newProfile.major.trim() || !newProfile.contactDetails.email.trim()}
           >
             Create Profile
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Rating Dialog */}
+      <Dialog open={ratingDialogOpen} onClose={() => setRatingDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Rate {selectedProfileForRating?.name} Before Connecting
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Please rate this student before connecting. This helps maintain quality in our community.
+            </Typography>
+            
+            <Box sx={{ my: 3 }}>
+              <Typography component="legend" gutterBottom>
+                Your Rating (Required)
+              </Typography>
+              <Rating
+                value={userRating}
+                onChange={(event, newValue) => {
+                  setUserRating(newValue);
+                }}
+                size="large"
+              />
+            </Box>
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Your Review (Optional)"
+              value={ratingComment}
+              onChange={(e) => setRatingComment(e.target.value)}
+              placeholder="Share your thoughts about this student..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRatingDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSubmitRating} 
+            variant="contained"
+            disabled={!userRating || userRating === 0}
+          >
+            Submit Rating & Connect
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Contact Info Dialog */}
+      <Dialog open={contactDialogOpen} onClose={() => setContactDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Contact Information - {selectedProfileForContact?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Here are the contact details for {selectedProfileForContact?.name}:
+            </Typography>
+            
+            <Box sx={{ mt: 3 }}>
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
+                <Typography variant="h6" gutterBottom>
+                  📧 Email
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2, wordBreak: 'break-all' }}>
+                  {selectedProfileForContact?.contactDetails.email}
+                </Typography>
+                
+                {selectedProfileForContact?.contactDetails.phone && (
+                  <>
+                    <Typography variant="h6" gutterBottom>
+                      📞 Phone
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {selectedProfileForContact.contactDetails.phone}
+                    </Typography>
+                  </>
+                )}
+                
+                <Typography variant="h6" gutterBottom>
+                  Preferred Contact Method
+                </Typography>
+                <Typography variant="body1">
+                  {selectedProfileForContact?.contactDetails.preferredContact === 'email' && 'Email Only'}
+                  {selectedProfileForContact?.contactDetails.preferredContact === 'phone' && 'Phone Only'}
+                  {selectedProfileForContact?.contactDetails.preferredContact === 'both' && 'Both Email & Phone'}
+                </Typography>
+              </Paper>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setContactDialogOpen(false)}>Close</Button>
+          <Button 
+            variant="contained"
+            onClick={() => {
+              // Copy email to clipboard
+              if (selectedProfileForContact?.contactDetails.email) {
+                navigator.clipboard.writeText(selectedProfileForContact.contactDetails.email);
+                alert('Email copied to clipboard!');
+              }
+            }}
+          >
+            Copy Email
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Comment Dialog */}
+      <Dialog open={commentDialogOpen} onClose={() => setCommentDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Rate & Comment on {selectedProfileForComment?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Share your experience with {selectedProfileForComment?.name}:
+            </Typography>
+            
+            <Box sx={{ my: 3 }}>
+              <Typography component="legend" gutterBottom>
+                Your Rating (Required)
+              </Typography>
+              <Rating
+                value={newCommentRating}
+                onChange={(event, newValue) => {
+                  setNewCommentRating(newValue);
+                }}
+                size="large"
+              />
+            </Box>
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Your Comment (Required)"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Share your thoughts about this student..."
+              required
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCommentDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSubmitComment} 
+            variant="contained"
+            disabled={!newCommentRating || newCommentRating === 0 || !newComment.trim()}
+          >
+            Submit Comment
           </Button>
         </DialogActions>
       </Dialog>
