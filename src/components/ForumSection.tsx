@@ -49,6 +49,8 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 interface ForumPost {
   id: string;
@@ -71,7 +73,13 @@ interface Reply {
   likes: string[];
 }
 
-const ForumSection: React.FC = () => {
+interface ForumSectionProps {
+  highlightedPostId?: string | null;
+}
+
+const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
+  const { currentUser } = useAuth();
+  const { addNotification } = useNotifications();
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -151,12 +159,40 @@ const ForumSection: React.FC = () => {
   };
 
   const handleLikePost = async (postId: string) => {
-    const userId = 'current_user'; // In a real app, get from auth
+    if (!currentUser) return;
+    
+    const userId = currentUser.uid;
     try {
       const postRef = doc(db, 'forumPosts', postId);
-      await updateDoc(postRef, {
-        likes: arrayUnion(userId)
-      });
+      const post = posts.find(p => p.id === postId);
+      
+      if (!post) return;
+      
+      const currentLikes = post.likes || [];
+      const hasLiked = currentLikes.includes(userId);
+      
+      if (!hasLiked) {
+        await updateDoc(postRef, {
+          likes: arrayUnion(userId)
+        });
+        
+        // Send notification to post author (if not liking own post)
+        if (post.userId && post.userId !== userId) {
+          await addNotification({
+            userId: post.userId,
+            type: 'like',
+            title: 'Someone liked your post',
+            message: `Your forum post "${post.title}" received a like`,
+            forumPostId: postId,
+            targetSection: 'forum',
+            fromUser: {
+              name: currentUser.displayName || currentUser.email || 'Someone',
+              email: currentUser.email || ''
+            }
+          });
+        }
+      }
+      
       loadPosts();
     } catch (error) {
       console.error('Error liking post:', error);
@@ -285,7 +321,17 @@ const ForumSection: React.FC = () => {
         <Grid container spacing={2}>
           {filteredPosts.map((post) => (
             <Grid item xs={12} key={post.id}>
-              <Card elevation={2} sx={{ '&:hover': { elevation: 4 } }}>
+              <Card 
+                elevation={2} 
+                sx={{ 
+                  '&:hover': { elevation: 4 },
+                  ...(highlightedPostId === post.id && {
+                    border: '3px solid #000000',
+                    boxShadow: '0 0 10px rgba(0,0,0,0.3)',
+                    transition: 'all 0.3s ease'
+                  })
+                }}
+              >
                 <CardContent>
                   {/* Post Header */}
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
@@ -333,7 +379,7 @@ const ForumSection: React.FC = () => {
                       startIcon={<LikeIcon />}
                       size="small"
                       onClick={() => handleLikePost(post.id)}
-                      color={post.likes?.includes('current_user') ? 'primary' : 'inherit'}
+                      color={post.likes?.includes(currentUser?.uid || '') ? 'primary' : 'inherit'}
                     >
                       {post.likes?.length || 0}
                     </Button>

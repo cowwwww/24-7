@@ -25,6 +25,7 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 interface UserProfileProps {
   anchorEl: HTMLElement | null;
@@ -34,6 +35,7 @@ interface UserProfileProps {
 
 const UserProfile: React.FC<UserProfileProps> = ({ anchorEl, open, onClose }) => {
   const { currentUser, logout, updateUserProfile } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, navigateToPost } = useNotifications();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [notificationsDialogOpen, setNotificationsDialogOpen] = useState(false);
@@ -134,7 +136,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ anchorEl, open, onClose }) =>
 
         <MenuItem onClick={openNotifications}>
           <ListItemIcon>
-            <Badge badgeContent={3} color="error">
+            <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon fontSize="small" />
             </Badge>
           </ListItemIcon>
@@ -266,43 +268,92 @@ const UserProfile: React.FC<UserProfileProps> = ({ anchorEl, open, onClose }) =>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Recent Activity
-            </Typography>
-            
-            {/* Mock notifications - these would come from a real notification system */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
-                  Someone liked your forum post
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  "How to improve study efficiency?" • 2 hours ago
-                </Typography>
-              </Box>
-              
-              <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
-                  New reply to your question
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  "Best places to study on campus" • 1 day ago
-                </Typography>
-              </Box>
-              
-              <Box sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                <Typography variant="body2" fontWeight="bold">
-                  Your review was helpful
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Library review got 5 helpful votes • 2 days ago
-                </Typography>
-              </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">
+                Notifications ({notifications.length})
+              </Typography>
+              {unreadCount > 0 && (
+                <Button 
+                  size="small" 
+                  onClick={markAllAsRead}
+                  sx={{ color: '#666666' }}
+                >
+                  Mark all as read
+                </Button>
+              )}
             </Box>
             
-            <Typography variant="body2" color="textSecondary" sx={{ mt: 3, textAlign: 'center' }}>
-              Stay tuned! We're building a comprehensive notification system.
-            </Typography>
+            {notifications.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <NotificationsIcon sx={{ fontSize: 48, color: '#cccccc', mb: 2 }} />
+                <Typography variant="body1" color="textSecondary">
+                  No notifications yet
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  You'll see notifications here when someone interacts with your posts
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: '400px', overflow: 'auto' }}>
+                {notifications.map((notification) => (
+                  <Box 
+                    key={notification.id}
+                    sx={{ 
+                      p: 2, 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: 1,
+                      backgroundColor: notification.read ? '#fafafa' : '#ffffff',
+                      borderLeft: notification.read ? '3px solid #e0e0e0' : '3px solid #000000',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: '#f5f5f5'
+                      }
+                    }}
+                    onClick={() => {
+                      navigateToPost(notification);
+                      setNotificationsDialogOpen(false);
+                      onClose();
+                    }}
+                  >
+                    <Typography 
+                      variant="body2" 
+                      fontWeight={notification.read ? "normal" : "bold"}
+                      sx={{ mb: 0.5 }}
+                    >
+                      {notification.title}
+                    </Typography>
+                    <Typography 
+                      variant="body2" 
+                      color="textSecondary"
+                      sx={{ mb: 0.5 }}
+                    >
+                      {notification.message}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                      {notification.fromUser?.name && `From ${notification.fromUser.name} • `}
+                      {notification.createdAt?.toDate ? 
+                        new Date(notification.createdAt.toDate()).toLocaleDateString() :
+                        'Recently'
+                      }
+                    </Typography>
+                    {!notification.read && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" sx={{ 
+                          backgroundColor: '#000000', 
+                          color: 'white', 
+                          px: 1, 
+                          py: 0.25, 
+                          borderRadius: 0.5,
+                          fontSize: '0.7rem'
+                        }}>
+                          NEW
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>

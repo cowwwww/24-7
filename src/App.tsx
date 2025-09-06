@@ -36,6 +36,7 @@ import ResourceSection from './components/ResourceSection';
 
 // Import auth components
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import UserProfile from './components/UserProfile';
@@ -161,12 +162,43 @@ function a11yProps(index: number) {
 
 function MainApp() {
   const [currentTab, setCurrentTab] = useState(0);
+  const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState<null | HTMLElement>(null);
 
   const { currentUser } = useAuth();
+
+  // Listen for navigation from notifications
+  React.useEffect(() => {
+    const handleNavigateToPost = (event: CustomEvent) => {
+      const { section, postId } = event.detail;
+      
+      // Switch to the correct tab
+      const sectionMap: { [key: string]: number } = {
+        'forum': 0,
+        'reviews': 1,
+        'connection': 2,
+        'resources': 3
+      };
+      
+      if (sectionMap[section] !== undefined) {
+        setCurrentTab(sectionMap[section]);
+        setHighlightedPostId(postId);
+        
+        // Clear highlight after a few seconds
+        setTimeout(() => {
+          setHighlightedPostId(null);
+        }, 5000);
+      }
+    };
+
+    window.addEventListener('navigateToPost', handleNavigateToPost as EventListener);
+    return () => {
+      window.removeEventListener('navigateToPost', handleNavigateToPost as EventListener);
+    };
+  }, []);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
@@ -205,10 +237,10 @@ function MainApp() {
   };
 
   const sections = [
-    { label: 'Forum', icon: <ForumIcon />, component: <ForumSection /> },
-    { label: 'Reviews', icon: <ReviewIcon />, component: <ReviewSection /> },
-    { label: 'Connect', icon: <ConnectionIcon />, component: <ConnectionSection /> },
-    { label: 'Resources', icon: <ResourceIcon />, component: <ResourceSection /> },
+    { label: 'Forum', icon: <ForumIcon />, component: <ForumSection highlightedPostId={currentTab === 0 ? highlightedPostId : null} /> },
+    { label: 'Reviews', icon: <ReviewIcon />, component: <ReviewSection highlightedPostId={currentTab === 1 ? highlightedPostId : null} /> },
+    { label: 'Connect', icon: <ConnectionIcon />, component: <ConnectionSection highlightedPostId={currentTab === 2 ? highlightedPostId : null} /> },
+    { label: 'Resources', icon: <ResourceIcon />, component: <ResourceSection highlightedPostId={currentTab === 3 ? highlightedPostId : null} /> },
   ];
 
   return (
@@ -236,7 +268,7 @@ function MainApp() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography 
                 variant="body2" 
-                sx={{ 
+          sx={{ 
                   display: { xs: 'none', sm: 'block' }, 
                   color: 'rgba(255, 255, 255, 0.9)' 
                 }}
@@ -258,33 +290,33 @@ function MainApp() {
                   {getAvatarLetter()}
                 </Avatar>
               </IconButton>
-            </Box>
-          ) : (
+              </Box>
+            ) : (
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
+                          <Button 
                 color="inherit"
                 startIcon={<LoginIcon />}
                 onClick={() => setLoginOpen(true)}
-                sx={{ 
+                            sx={{
                   display: { xs: 'none', sm: 'flex' },
                   fontSize: '0.875rem'
                 }}
               >
                 Login
-              </Button>
-              <Button
+                          </Button>
+                          <Button 
                 color="inherit"
                 variant="outlined"
                 startIcon={<SignupIcon />}
                 onClick={() => setSignupOpen(true)}
-                sx={{ 
+                            sx={{
                   borderColor: 'rgba(255, 255, 255, 0.5)',
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   px: { xs: 1, sm: 2 }
                 }}
               >
                 Sign Up
-              </Button>
+                          </Button>
               {/* Mobile Login Button */}
               <IconButton
                 color="inherit"
@@ -293,15 +325,15 @@ function MainApp() {
               >
                 <LoginIcon />
               </IconButton>
-            </Box>
-          )}
+              </Box>
+            )}
         </Toolbar>
       </AppBar>
 
       {/* Bottom Navigation for Mobile */}
       <Paper 
-        sx={{ 
-          position: 'fixed',
+          sx={{ 
+            position: 'fixed', 
           bottom: 0,
           left: 0,
           right: 0,
@@ -343,7 +375,7 @@ function MainApp() {
 
       {/* Desktop Tabs */}
       <Paper 
-        sx={{ 
+              sx={{
           display: { xs: 'none', md: 'block' },
           borderRadius: 0,
           borderBottom: 1,
@@ -356,7 +388,7 @@ function MainApp() {
             onChange={handleTabChange}
             variant="scrollable"
             scrollButtons="auto"
-            sx={{
+            sx={{ 
               '& .MuiTab-root': {
                 minWidth: 'auto',
                 fontSize: '0.875rem',
@@ -425,7 +457,9 @@ function MainApp() {
 function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <NotificationProvider>
+        <MainApp />
+      </NotificationProvider>
     </AuthProvider>
   );
 }
