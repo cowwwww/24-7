@@ -607,11 +607,35 @@ const ReviewSection: React.FC = () => {
                     </Typography>
                   )}
                 </Paper>
+<<<<<<< HEAD
               </Box>
             </Box>
 
 
 
+=======
+              </Grid>
+            </Grid>
+
+
+            {/* Smart Suggestions */}
+            {type.id === 'canteen' && (
+              <Paper sx={{ p: 2, mb: 3, bgcolor: 'info.50' }}>
+                <Typography variant="h6" gutterBottom>
+                  💡 Smart Suggestions
+                </Typography>
+                <Typography variant="subtitle2" gutterBottom>
+                  🍎 Study Snacks Available:
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  • Fresh fruit and yogurt parfaits<br/>
+                  • Energy bars and nuts<br/>
+                  • Coffee and tea selection<br/>
+                  • Healthy sandwich options
+                </Typography>
+              </Paper>
+            )}
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
 
             {/* All Reviews */}
             <Box>

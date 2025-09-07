@@ -25,7 +25,10 @@ import {
   CircularProgress,
   Tab,
   Tabs,
+<<<<<<< HEAD
   Rating,
+=======
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -47,10 +50,13 @@ import {
   ContentCut as HaircutIcon,
   Business as HousingIcon,
   LibraryBooks as MaterialsIcon,
+<<<<<<< HEAD
   Visibility as ViewIcon,
   Send as SendIcon,
   Close as CloseIcon,
   Star as StarIcon,
+=======
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -504,7 +510,11 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
       pb: { xs: 10, sm: 4 } // Extra bottom padding on mobile for FAB
     }}>
       {/* Header with Search */}
+<<<<<<< HEAD
       <Paper elevation={2} sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
+=======
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h5" component="h1" sx={{ color: 'white', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
             📚 Forum
@@ -670,12 +680,16 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
               id={`post-${post.id}`}
               elevation={2} 
               sx={{ 
+<<<<<<< HEAD
                 cursor: 'pointer',
                 '&:hover': { 
                   elevation: 4,
                   transform: 'translateY(-2px)',
                   transition: 'all 0.2s ease'
                 },
+=======
+                '&:hover': { elevation: 4 },
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
                 ...(highlightedPostId === post.id && {
                   border: '3px solid #000000',
                   boxShadow: '0 0 10px rgba(0,0,0,0.3)',
@@ -688,7 +702,10 @@ const ForumSection: React.FC<ForumSectionProps> = ({ highlightedPostId }) => {
                   animation: 'glow 2s ease-in-out'
                 })
               }}
+<<<<<<< HEAD
               onClick={() => handleViewPost(post)}
+=======
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
             >
                 <CardContent sx={{ 
                   p: { xs: 2, sm: 3 },

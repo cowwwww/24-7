@@ -56,10 +56,6 @@ import {
   HomeRepairService as HomeServiceIcon,
   Computer as TechIcon,
   Psychology as CounselingIcon,
-  Close as CloseIcon,
-  Comment as CommentIcon,
-  Visibility as ViewIcon,
-  Send as SendIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -173,12 +169,6 @@ const ConnectionSection: React.FC = () => {
   const [selectedProfileForComment, setSelectedProfileForComment] = useState<StudentProfile | null>(null);
   const [newComment, setNewComment] = useState('');
   const [newCommentRating, setNewCommentRating] = useState<number | null>(null);
-
-  // Detail dialog state
-  const [openDetailDialog, setOpenDetailDialog] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<StudentProfile | null>(null);
-  const [comments, setComments] = useState<any[]>([]);
-  const [newDetailComment, setNewDetailComment] = useState('');
 
   const majors = [
     'Computer Science', 'Engineering', 'Business', 'Mathematics', 'Physics',
@@ -418,57 +408,6 @@ const ConnectionSection: React.FC = () => {
     }
   };
 
-  // Detail dialog handlers
-  const handleViewProfile = (profile: StudentProfile) => {
-    setSelectedProfile(profile);
-    setOpenDetailDialog(true);
-    loadComments(profile.id);
-  };
-
-  const loadComments = async (profileId: string) => {
-    try {
-      const commentsQuery = query(
-        collection(db, 'profileComments'),
-        where('profileId', '==', profileId),
-        orderBy('timestamp', 'desc')
-      );
-      const snapshot = await getDocs(commentsQuery);
-      const commentsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setComments(commentsData);
-    } catch (error) {
-      console.error('Error loading comments:', error);
-    }
-  };
-
-  const handleSubmitDetailComment = async () => {
-    if (!selectedProfile || !newDetailComment.trim()) return;
-
-    try {
-      const commentData = {
-        profileId: selectedProfile.id,
-        comment: newDetailComment,
-        commenter: 'Anonymous Student',
-        userId: `anonymous_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: Timestamp.now(),
-        likes: [],
-      };
-
-      await addDoc(collection(db, 'profileComments'), commentData);
-      
-      setNewDetailComment('');
-      loadComments(selectedProfile.id);
-    } catch (error) {
-      console.error('Error adding comment:', error);
-    }
-  };
-
-  const getCommentsForProfile = (profileId: string) => {
-    return comments.filter(comment => comment.profileId === profileId);
-  };
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -563,13 +502,11 @@ const ConnectionSection: React.FC = () => {
             <Box key={profile.id}>
               <Card 
                 elevation={2} 
-                onClick={() => handleViewProfile(profile)}
                 sx={{ 
                   height: '100%', 
                   display: 'flex', 
                   flexDirection: 'column',
                   borderRadius: 2,
-                  cursor: 'pointer',
                   '&:hover': { 
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     transform: 'translateY(-2px)',
@@ -577,23 +514,23 @@ const ConnectionSection: React.FC = () => {
                   }
                 }}
               >
-                <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                <CardContent sx={{ flexGrow: 1, p: 3 }}>
                   {/* Header with Avatar and Basic Info */}
-                  <Box display="flex" alignItems="center" gap={1.5} mb={1.5}>
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
                     <Badge
                       overlap="circular"
                       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                       badgeContent={profile.verified ? <VerifiedIcon color="primary" fontSize="small" /> : null}
                     >
-                      <Avatar sx={{ width: 48, height: 48, bgcolor: '#000000', fontSize: '1rem' }}>
+                      <Avatar sx={{ width: 56, height: 56, bgcolor: '#000000', fontSize: '1.2rem' }}>
                         {profile.name.split(' ').map(n => n[0]).join('')}
                       </Avatar>
                     </Badge>
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography variant="subtitle1" sx={{ wordBreak: 'break-word', fontWeight: 600, mb: 0.25, fontSize: '1rem' }}>
+                      <Typography variant="h6" sx={{ wordBreak: 'break-word', fontWeight: 600, mb: 0.5 }}>
                         {profile.name}
                       </Typography>
-                      <Typography variant="body2" color="textSecondary" sx={{ wordBreak: 'break-word', fontSize: '0.8rem' }}>
+                      <Typography variant="body2" color="textSecondary" sx={{ wordBreak: 'break-word', fontSize: '0.875rem' }}>
                         {profile.major} • Year {profile.year}
                       </Typography>
                     </Box>
@@ -602,15 +539,12 @@ const ConnectionSection: React.FC = () => {
                   {profile.bio && (
                     <Typography 
                       variant="body2" 
+                      paragraph
                       sx={{ 
-                        fontSize: '0.8rem',
-                        lineHeight: 1.4,
+                        fontSize: '0.875rem',
+                        lineHeight: 1.5,
                         color: 'text.secondary',
-                        mb: 1.5,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        mb: 2
                       }}
                     >
                       {profile.bio}
@@ -618,34 +552,34 @@ const ConnectionSection: React.FC = () => {
                   )}
 
                   {profile.hobbies.length > 0 && (
-                    <Box mb={1.5}>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600, fontSize: '0.7rem' }}>
+                    <Box mb={2}>
+                      <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
                         🎯 Hobbies
                       </Typography>
-                      <Box mt={0.5} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
-                        {profile.hobbies.slice(0, 2).map((hobby) => (
+                      <Box mt={1} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {profile.hobbies.slice(0, 3).map((hobby) => (
                           <Chip
                             key={hobby}
                             label={hobby}
                             size="small"
                             variant="outlined"
                             sx={{ 
-                              fontSize: '0.65rem',
-                              height: 20,
+                              fontSize: '0.7rem',
+                              height: 24,
                               '& .MuiChip-label': {
-                                px: 0.75
+                                px: 1
                               }
                             }}
                           />
                         ))}
-                        {profile.hobbies.length > 2 && (
+                        {profile.hobbies.length > 3 && (
                           <Chip
-                            label={`+${profile.hobbies.length - 2}`}
+                            label={`+${profile.hobbies.length - 3} more`}
                             size="small"
                             variant="outlined"
                             sx={{ 
-                              fontSize: '0.65rem',
-                              height: 20,
+                              fontSize: '0.7rem',
+                              height: 24,
                               color: 'text.secondary'
                             }}
                           />
@@ -655,110 +589,111 @@ const ConnectionSection: React.FC = () => {
                   )}
 
                   {profile.skills.length > 0 && (
-                    <Box mb={1.5}>
-                      <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600, fontSize: '0.7rem' }}>
+                    <Box mb={2}>
+                      <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
                         💼 Skills
                       </Typography>
-                      <Box mt={0.5} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
-                        {profile.skills.slice(0, 3).map((skill) => (
+                      <Box mt={1} sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {profile.skills.map((skill) => (
                           <Chip
                             key={skill}
                             icon={getSkillIcon(skill)}
                             label={skill}
                             size="small"
                             sx={{ 
-                              fontSize: '0.65rem',
-                              height: 20,
+                              fontSize: '0.7rem',
+                              height: 24,
                               minWidth: 'fit-content',
                               whiteSpace: 'nowrap',
                               '& .MuiChip-label': {
                                 whiteSpace: 'nowrap',
                                 overflow: 'visible',
-                                px: 0.75
+                                px: 1
                               }
                             }}
                           />
                         ))}
-                        {profile.skills.length > 3 && (
-                          <Chip
-                            label={`+${profile.skills.length - 3}`}
-                            size="small"
-                            variant="outlined"
-                            sx={{ 
-                              fontSize: '0.65rem',
-                              height: 20,
-                              color: 'text.secondary'
-                            }}
-                          />
-                        )}
                       </Box>
                     </Box>
                   )}
 
                   {profile.helpOffering.isOffering && (
                     <Paper sx={{ 
-                      p: 1.5, 
+                      p: 2, 
                       bgcolor: '#f8f9fa', 
                       border: '1px solid #e9ecef', 
-                      mb: 1.5,
+                      mb: 2,
                       borderRadius: 1
                     }}>
-                      <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom sx={{ fontSize: '0.8rem' }}>
+                      <Typography variant="subtitle2" color="primary" fontWeight="bold" gutterBottom sx={{ fontSize: '0.875rem' }}>
                         💡 Offering Help
                       </Typography>
-                      <Box sx={{ mb: 0.5 }}>
-                        <Typography variant="body2" sx={{ wordBreak: 'break-word', fontSize: '0.75rem' }}>
-                          {profile.helpOffering.subjects.slice(0, 2).join(', ')}
-                          {profile.helpOffering.subjects.length > 2 && ` +${profile.helpOffering.subjects.length - 2} more`}
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="body2" sx={{ wordBreak: 'break-word', fontSize: '0.8rem' }}>
+                          {profile.helpOffering.subjects.join(', ')}
                         </Typography>
                       </Box>
-                      <Typography variant="subtitle1" color="primary" fontWeight="bold" sx={{ whiteSpace: 'nowrap', fontSize: '0.9rem' }}>
+                      <Typography variant="h6" color="primary" fontWeight="bold" sx={{ whiteSpace: 'nowrap', fontSize: '1rem' }}>
                         ${profile.helpOffering.pricePerHour}/hour
                       </Typography>
                     </Paper>
                   )}
 
-                  {/* Ratings Summary */}
+                  {/* Ratings Section */}
                   {profile.ratings && profile.ratings.length > 0 && (
-                    <Box mb={1.5}>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Rating 
-                          value={profile.ratings.reduce((sum, r) => sum + r.rating, 0) / profile.ratings.length} 
-                          readOnly 
-                          size="small" 
-                        />
-                        <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
-                          ({profile.ratings.length} reviews)
-                        </Typography>
+                    <Box mb={2}>
+                      <Typography variant="caption" color="textSecondary" gutterBottom sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
+                        ⭐ Recent Reviews
+                      </Typography>
+                      <Box sx={{ maxHeight: '100px', overflowY: 'auto' }}>
+                        {profile.ratings.slice(0, 2).map((rating) => (
+                          <Paper key={rating.id} sx={{ p: 1.5, mb: 1, bgcolor: '#f8f9fa', borderRadius: 1 }}>
+                            <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                              <Rating value={rating.rating} readOnly size="small" />
+                              <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
+                                by {rating.raterName}
+                              </Typography>
+                            </Box>
+                            {rating.comment && (
+                              <Typography variant="body2" sx={{ fontSize: '0.75rem', lineHeight: 1.3 }}>
+                                "{rating.comment}"
+                              </Typography>
+                            )}
+                          </Paper>
+                        ))}
+                        {profile.ratings.length > 2 && (
+                          <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
+                            +{profile.ratings.length - 2} more reviews
+                          </Typography>
+                        )}
                       </Box>
                     </Box>
                   )}
 
                   {/* Card Footer */}
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mt={1.5} pt={1} borderTop="1px solid #e0e0e0">
-                    <Box display="flex" alignItems="center" gap={0.5}>
-                      <CommentIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
-                        {getCommentsForProfile(profile.id).length} comments
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} pt={1} borderTop="1px solid #e0e0e0">
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <ChatIcon fontSize="small" color="action" />
+                      <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.75rem' }}>
+                        {profile.ratings?.length || 0} reviews
                       </Typography>
                     </Box>
-                    <Box display="flex" alignItems="center" gap={0.5}>
-                      <ViewIcon fontSize="small" color="action" />
-                      <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.7rem' }}>
-                        View Details
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.75rem' }}>
+                        Connect
                       </Typography>
                     </Box>
                   </Box>
                 </CardContent>
 
-                <CardActions sx={{ p: 1.5, pt: 0.5, gap: 0.5 }}>
+                <CardActions sx={{ p: 2, pt: 1, gap: 1 }}>
                   <Button 
                     size="small" 
                     startIcon={<StarIcon />}
                     onClick={() => handleCommentClick(profile)}
                     color="primary"
                     variant="outlined"
-                    sx={{ fontSize: '0.7rem', minWidth: 'auto', px: 1.5, py: 0.5 }}
+                    sx={{ fontSize: '0.75rem', minWidth: 'auto' }}
                   >
                     Rate
                   </Button>
@@ -768,7 +703,7 @@ const ConnectionSection: React.FC = () => {
                     onClick={() => handleContactClick(profile)}
                     color="secondary"
                     variant="outlined"
-                    sx={{ fontSize: '0.7rem', minWidth: 'auto', px: 1.5, py: 0.5 }}
+                    sx={{ fontSize: '0.75rem', minWidth: 'auto' }}
                   >
                     Contact
                   </Button>
@@ -1887,169 +1822,6 @@ const ConnectionSection: React.FC = () => {
             Submit Comment
           </Button>
         </DialogActions>
-      </Dialog>
-
-      {/* Profile Detail Dialog */}
-      <Dialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">
-            {selectedProfile?.name} - Profile Details
-          </Typography>
-          <IconButton onClick={() => setOpenDetailDialog(false)}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {selectedProfile && (
-            <Box>
-              {/* Profile Header */}
-              <Box display="flex" alignItems="center" gap={2} mb={3}>
-                <Badge
-                  overlap="circular"
-                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                  badgeContent={selectedProfile.verified ? <VerifiedIcon color="primary" fontSize="small" /> : null}
-                >
-                  <Avatar sx={{ width: 64, height: 64, bgcolor: '#000000', fontSize: '1.5rem' }}>
-                    {selectedProfile.name.split(' ').map(n => n[0]).join('')}
-                  </Avatar>
-                </Badge>
-                <Box>
-                  <Typography variant="h5" gutterBottom>
-                    {selectedProfile.name}
-                  </Typography>
-                  <Typography variant="body1" color="textSecondary">
-                    {selectedProfile.major} • Year {selectedProfile.year}
-                  </Typography>
-                </Box>
-              </Box>
-
-              {/* Bio */}
-              {selectedProfile.bio && (
-                <Box mb={3}>
-                  <Typography variant="h6" gutterBottom>
-                    About
-                  </Typography>
-                  <Typography variant="body1" paragraph>
-                    {selectedProfile.bio}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Skills and Hobbies */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
-                {selectedProfile.skills.length > 0 && (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      💼 Skills
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {selectedProfile.skills.map((skill) => (
-                        <Chip
-                          key={skill}
-                          icon={getSkillIcon(skill)}
-                          label={skill}
-                          size="small"
-                          sx={{ fontSize: '0.8rem' }}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-
-                {selectedProfile.hobbies.length > 0 && (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      🎯 Hobbies
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                      {selectedProfile.hobbies.map((hobby) => (
-                        <Chip
-                          key={hobby}
-                          label={hobby}
-                          size="small"
-                          variant="outlined"
-                          sx={{ fontSize: '0.8rem' }}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-              </Box>
-
-              {/* Help Offering */}
-              {selectedProfile.helpOffering.isOffering && (
-                <Box mb={3}>
-                  <Typography variant="h6" gutterBottom>
-                    💡 Offering Help
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: '#f8f9fa', border: '1px solid #e9ecef' }}>
-                    <Typography variant="body1" paragraph>
-                      {selectedProfile.helpOffering.subjects.join(', ')}
-                    </Typography>
-                    <Typography variant="h6" color="primary">
-                      ${selectedProfile.helpOffering.pricePerHour}/hour
-                    </Typography>
-                    {selectedProfile.helpOffering.description && (
-                      <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                        {selectedProfile.helpOffering.description}
-                      </Typography>
-                    )}
-                  </Paper>
-                </Box>
-              )}
-
-              {/* Comments Section */}
-              <Box>
-                <Typography variant="h6" gutterBottom>
-                  💬 Comments ({comments.length})
-                </Typography>
-                
-                {/* Existing Comments */}
-                <Box sx={{ maxHeight: '300px', overflowY: 'auto', mb: 2 }}>
-                  {comments.map((comment) => (
-                    <Paper key={comment.id} sx={{ p: 2, mb: 2, bgcolor: '#f8f9fa' }}>
-                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                        <Typography variant="subtitle2" color="primary">
-                          {comment.commenter}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {comment.timestamp?.toDate?.().toLocaleDateString() || 'Just now'}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body2">
-                        {comment.comment}
-                      </Typography>
-                    </Paper>
-                  ))}
-                </Box>
-
-                {/* Add Comment Form */}
-                <Box>
-                  <Typography variant="subtitle1" gutterBottom>
-                    💭 Add Your Comment
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    value={newDetailComment}
-                    onChange={(e) => setNewDetailComment(e.target.value)}
-                    placeholder="Share your thoughts about this student..."
-                    sx={{ mb: 2 }}
-                  />
-                  <Button
-                    variant="contained"
-                    startIcon={<SendIcon />}
-                    onClick={handleSubmitDetailComment}
-                    disabled={!newDetailComment.trim()}
-                  >
-                    Add Comment
-                  </Button>
-                </Box>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
       </Dialog>
 
       {/* Floating Action Button */}

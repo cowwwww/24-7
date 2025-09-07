@@ -1,9 +1,1 @@
 node_modules
-dist
-.env
-.env.local
-.env.production
-firebase-debug.log
-firebase-debug.*.log
-*.local
-.DS_Store

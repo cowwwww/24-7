@@ -39,7 +39,6 @@ import {
   Star as StarIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
-  TrendingUp as TrendingUpIcon,
   Schedule as ScheduleIcon,
   LocationOn as LocationIcon,
   Close as CloseIcon,
@@ -51,7 +50,6 @@ import {
   addCanteenRating,
   getWaitTimeEntries,
   getCanteenRatings,
-  getWaitTimePrediction,
   getTimeOfDay,
   getDayOfWeek,
   isCanteenOpen,
@@ -77,7 +75,6 @@ const CanteenSection: React.FC = () => {
   const [comment, setComment] = useState<string>('');
   const [recentEntries, setRecentEntries] = useState<WaitTimeEntry[]>([]);
   const [recentRatings, setRecentRatings] = useState<CanteenRating[]>([]);
-  const [prediction, setPrediction] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -182,15 +179,13 @@ const CanteenSection: React.FC = () => {
 
   const loadCanteenDetails = async (canteenId: string) => {
     try {
-      const [entries, ratings, pred] = await Promise.all([
+      const [entries, ratings] = await Promise.all([
         getWaitTimeEntries(canteenId, 10),
         getCanteenRatings(canteenId),
-        getWaitTimePrediction(canteenId, getTimeOfDay(), getDayOfWeek()),
       ]);
       
       setRecentEntries(entries);
       setRecentRatings(ratings.slice(0, 5));
-      setPrediction(pred);
     } catch (error) {
       console.error('Error loading canteen details:', error);
     }
@@ -257,6 +252,7 @@ const CanteenSection: React.FC = () => {
         </Alert>
       )}
 
+<<<<<<< HEAD
       <Box sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, 
@@ -264,6 +260,11 @@ const CanteenSection: React.FC = () => {
       }}>
         {canteens.map((canteen) => (
           <Box key={canteen.id}>
+=======
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+        {canteens.map((canteen) => (
+          <Box key={canteen.id} sx={{ flex: '1 1 300px', maxWidth: { xs: '100%', md: 'calc(50% - 12px)', lg: 'calc(33.33% - 16px)' } }}>
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
             <Card 
               sx={{ 
                 height: '100%', 
@@ -508,12 +509,17 @@ const CanteenSection: React.FC = () => {
             </DialogTitle>
             <DialogContent>
               <Box sx={{ pt: 2 }}>
+<<<<<<< HEAD
                 <Box sx={{ 
                   display: 'grid', 
                   gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
                   gap: 3 
                 }}>
                   <Box>
+=======
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+                  <Box sx={{ flex: 1 }}>
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
                     <Paper sx={{ p: 2, mb: 2 }}>
                       <Typography variant="h6" gutterBottom>
                         Current Status
@@ -551,6 +557,7 @@ const CanteenSection: React.FC = () => {
                       </Box>
                     </Paper>
 
+<<<<<<< HEAD
                     {prediction && (
                       <Paper sx={{ p: 2, mb: 2 }}>
                         <Typography variant="h6" gutterBottom>
@@ -581,6 +588,11 @@ const CanteenSection: React.FC = () => {
                   </Box>
 
                   <Box>
+=======
+                  </Box>
+
+                  <Box sx={{ flex: 1 }}>
+>>>>>>> f63aa5a026c1017157a9482f6be4a48395a1b70e
                     <Paper sx={{ p: 2, mb: 2 }}>
                       <Typography variant="h6" gutterBottom>
                         Recent Wait Times

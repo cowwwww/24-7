@@ -14,7 +14,7 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Canteen, WaitTimeEntry, CanteenRating, WaitTimePrediction } from '../types/Canteen';
+import type { Canteen, WaitTimeEntry, CanteenRating } from '../types/Canteen';
 
 const CANTEENS_COLLECTION = 'canteens';
 const WAIT_TIME_ENTRIES_COLLECTION = 'waitTimeEntries';
@@ -215,46 +215,6 @@ const updateCanteenRating = async (canteenId: string): Promise<void> => {
     }
   } catch (error) {
     console.error('Error updating canteen rating:', error);
-  }
-};
-
-// Prediction functions
-export const getWaitTimePrediction = async (canteenId: string, timeOfDay: string, dayOfWeek: string): Promise<WaitTimePrediction | null> => {
-  try {
-    // Get historical data for similar time periods
-    const q = query(
-      collection(db, WAIT_TIME_ENTRIES_COLLECTION),
-      where('canteenId', '==', canteenId),
-      where('timeOfDay', '==', timeOfDay),
-      where('dayOfWeek', '==', dayOfWeek),
-      orderBy('timestamp', 'desc'),
-      limit(20)
-    );
-    
-    const snapshot = await getDocs(q);
-    const entries = snapshot.docs.map(doc => doc.data().waitTime as number);
-    
-    if (entries.length === 0) {
-      return null;
-    }
-    
-    // Calculate prediction based on historical data
-    const averageWaitTime = entries.reduce((sum, time) => sum + time, 0) / entries.length;
-    const variance = entries.reduce((sum, time) => sum + Math.pow(time - averageWaitTime, 2), 0) / entries.length;
-    const confidence = Math.max(0, Math.min(1, 1 - (Math.sqrt(variance) / averageWaitTime)));
-    
-    return {
-      canteenId,
-      predictedWaitTime: Math.round(averageWaitTime * 10) / 10,
-      confidence: Math.round(confidence * 100) / 100,
-      basedOnEntries: entries.length,
-      timeOfDay,
-      dayOfWeek,
-      lastUpdated: new Date(),
-    };
-  } catch (error) {
-    console.error('Error getting wait time prediction:', error);
-    return null;
   }
 };
 
