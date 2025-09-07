@@ -90,6 +90,55 @@ service cloud.firestore {
       allow read, write: if true; // Public access for notifications
     }
     
+    match /userRatings/{document=**} {
+      allow read, write: if true; // Public access for user ratings and comments
+    }
+    
+    // Marketplace Collections
+    match /marketplaceItems/{document=**} {
+      allow read, write: if true; // Public access for marketplace items
+    }
+    
+    match /marketplace-items/{document=**} {
+      allow read, write: if true; // Public access for marketplace items (with dash)
+    }
+    
+    match /canteens/{document=**} {
+      allow read, write: if true; // Public access for canteen information
+    }
+    
+    match /waitTimeEntries/{document=**} {
+      allow read, write: if true; // Public access for wait time entries
+    }
+    
+    match /canteenRatings/{document=**} {
+      allow read, write: if true; // Public access for canteen ratings
+    }
+    
+    // ML Prediction Collections
+    match /occupancyData/{document=**} {
+      allow read, write: if true; // Public access for occupancy data
+    }
+    
+    match /predictionCache/{document=**} {
+      allow read, write: if true; // Public access for prediction cache
+    }
+    
+    // Allow public access to review comments
+    match /reviewComments/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Allow public access to forum comments
+    match /forumComments/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Allow public access to profile comments
+    match /profileComments/{document=**} {
+      allow read, write: if true;
+    }
+    
     // 辅助函数
     function hasRole(role) {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;

@@ -12,11 +12,14 @@ import {
   FormControlLabel,
   Checkbox,
   Link,
+  TextField,
+  Divider,
 } from '@mui/material';
 import {
   Google as GoogleIcon,
-  Apple as AppleIcon,
   Close as CloseIcon,
+  Email as EmailIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -30,8 +33,11 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const { loginWithGoogle, loginWithApple } = useAuth();
+  const { loginWithGoogle, signupWithEmailAndPassword } = useAuth();
 
   const handleGoogleSignup = async () => {
     if (!agreeToTerms) {
@@ -53,7 +59,24 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
     }
   };
 
-  const handleAppleSignup = async () => {
+  const handleEmailSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password || !confirmPassword) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     if (!agreeToTerms) {
       setError('Please agree to the terms and conditions');
       return;
@@ -62,12 +85,29 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
     try {
       setError('');
       setLoading(true);
-      await loginWithApple();
+      await signupWithEmailAndPassword(email, password);
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
       setAgreeToTerms(false);
       onClose();
     } catch (error: any) {
-      console.error('Apple signup error:', error);
-      setError(error.message || 'Failed to sign up with Apple');
+      console.error('Email signup error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to create account';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'An account with this email already exists';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -82,9 +122,7 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">
-          Join the Community! 🎓
-        </Typography>
+        Join the Community! 🎓
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
         </IconButton>
@@ -93,7 +131,7 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
       <DialogContent sx={{ pb: 3 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Typography variant="body1" color="textSecondary">
-            Sign up with your social account to get started
+            Create your account to get started
           </Typography>
         </Box>
 
@@ -103,63 +141,100 @@ const Signup: React.FC<SignupProps> = ({ open, onClose, onSwitchToLogin }) => {
           </Alert>
         )}
 
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={agreeToTerms}
-              onChange={(e) => setAgreeToTerms(e.target.checked)}
-              name="agreeToTerms"
-            />
-          }
-          label={
-            <Typography variant="body2">
-              I agree to the Terms of Service and Privacy Policy
-            </Typography>
-          }
-          sx={{ mb: 3 }}
-        />
-
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Button
+        {/* Email/Password Form */}
+        <Box component="form" onSubmit={handleEmailSignup} sx={{ mb: 3 }}>
+          <TextField
             fullWidth
-            variant="outlined"
-            size="large"
-            startIcon={<GoogleIcon />}
-            onClick={handleGoogleSignup}
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
-            sx={{ 
-              py: 1.5,
-              borderColor: '#db4437',
-              color: '#db4437',
-              '&:hover': {
-                borderColor: '#c23321',
-                backgroundColor: '#fdf2f2'
-              }
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
             }}
-          >
-            {loading ? <CircularProgress size={20} /> : 'Continue with Google'}
-          </Button>
+          />
+          <TextField
+            fullWidth
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: <LockIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            }}
+          />
+          <TextField
+            fullWidth
+            label="Confirm Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            disabled={loading}
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: <LockIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            }}
+          />
+          
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={agreeToTerms}
+                onChange={(e) => setAgreeToTerms(e.target.checked)}
+                name="agreeToTerms"
+                disabled={loading}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                I agree to the Terms of Service and Privacy Policy
+              </Typography>
+            }
+            sx={{ mb: 2 }}
+          />
 
           <Button
+            type="submit"
             fullWidth
-            variant="outlined"
+            variant="contained"
             size="large"
-            startIcon={<AppleIcon />}
-            onClick={handleAppleSignup}
-            disabled={loading}
-            sx={{ 
-              py: 1.5,
-              borderColor: '#000000',
-              color: '#000000',
-              '&:hover': {
-                borderColor: '#333333',
-                backgroundColor: '#f5f5f5'
-              }
-            }}
+            disabled={loading || !email || !password || !confirmPassword || !agreeToTerms}
+            sx={{ py: 1.5 }}
           >
-            {loading ? <CircularProgress size={20} /> : 'Continue with Apple'}
+            {loading ? <CircularProgress size={20} /> : 'Create Account'}
           </Button>
         </Box>
+
+        <Divider sx={{ my: 2 }}>
+          <Typography variant="body2" color="textSecondary">
+            OR
+          </Typography>
+        </Divider>
+
+        {/* Google Sign-Up */}
+        <Button
+          fullWidth
+          variant="outlined"
+          size="large"
+          startIcon={<GoogleIcon />}
+          onClick={handleGoogleSignup}
+          disabled={loading}
+          sx={{ 
+            py: 1.5,
+            borderColor: '#db4437',
+            color: '#db4437',
+            '&:hover': {
+              borderColor: '#c23321',
+              backgroundColor: '#fdf2f2'
+            }
+          }}
+        >
+          {loading ? <CircularProgress size={20} /> : 'Continue with Google'}
+        </Button>
 
         <Box textAlign="center" sx={{ mt: 3 }}>
           <Typography variant="body2" color="textSecondary">

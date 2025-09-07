@@ -28,6 +28,8 @@ import {
   Login as LoginIcon,
   PersonAdd as SignupIcon,
   Notifications as NotificationsIcon,
+  Fullscreen as FullscreenIcon,
+  FullscreenExit as FullscreenExitIcon,
 } from '@mui/icons-material';
 
 // Import components for each section
@@ -147,7 +149,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
           {children}
         </Box>
       )}
@@ -169,6 +171,7 @@ function MainApp() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
   const [profileMenuAnchor, setProfileMenuAnchor] = useState<null | HTMLElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const { currentUser } = useAuth();
   const { unreadCount } = useNotifications();
@@ -239,16 +242,231 @@ function MainApp() {
     return displayName.charAt(0).toUpperCase();
   };
 
+  // Detect mobile devices
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+           (window.innerWidth <= 768 && window.innerHeight <= 1024);
+  };
+
+  // Simplified mobile fullscreen approach
+  const toggleFullscreen = async () => {
+    if (isMobile()) {
+      if (!isFullscreen) {
+        // Mobile fullscreen simulation
+        try {
+          // Try the standard fullscreen API first (works on some Android browsers)
+          if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          }
+        } catch (err) {
+          console.log('Standard fullscreen not available on mobile, using fallback');
+        }
+        
+        // Apply mobile-specific fullscreen styles
+        document.body.classList.add('mobile-fullscreen');
+        document.documentElement.classList.add('mobile-fullscreen');
+        
+        // Force body and html to fullscreen
+        document.body.style.cssText = `
+          height: 100vh !important;
+          height: 100dvh !important;
+          overflow: hidden !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          z-index: 999999 !important;
+        `;
+        
+        document.documentElement.style.cssText = `
+          height: 100vh !important;
+          height: 100dvh !important;
+          overflow: hidden !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        `;
+        
+        // Multiple attempts to hide address bar
+        const hideAddressBar = () => {
+          window.scrollTo(0, 1);
+          setTimeout(() => window.scrollTo(0, 0), 50);
+        };
+        
+        hideAddressBar();
+        setTimeout(hideAddressBar, 100);
+        setTimeout(hideAddressBar, 300);
+        setTimeout(hideAddressBar, 500);
+        
+        // Debug log
+        console.log('Mobile fullscreen activated:', {
+          userAgent: navigator.userAgent,
+          screenHeight: screen.height,
+          windowHeight: window.innerHeight,
+          viewportHeight: window.visualViewport?.height
+        });
+        
+        setIsFullscreen(true);
+      } else {
+        // Exit mobile fullscreen
+        try {
+          if (document.exitFullscreen && document.fullscreenElement) {
+            await document.exitFullscreen();
+          }
+        } catch (err) {
+          console.log('Exit fullscreen not available');
+        }
+        
+        // Remove mobile fullscreen classes and reset styles
+        document.body.classList.remove('mobile-fullscreen');
+        document.documentElement.classList.remove('mobile-fullscreen');
+        
+        // Reset styles
+        document.body.style.cssText = '';
+        document.documentElement.style.cssText = '';
+        
+        console.log('Mobile fullscreen deactivated');
+        
+        setIsFullscreen(false);
+      }
+    } else {
+      // Desktop fullscreen (unchanged)
+      if (!document.fullscreenElement) {
+        try {
+          await document.documentElement.requestFullscreen();
+          setIsFullscreen(true);
+        } catch (err) {
+          console.error('Error attempting to enable fullscreen:', err);
+        }
+      } else {
+        try {
+          await document.exitFullscreen();
+          setIsFullscreen(false);
+        } catch (err) {
+          console.error('Error attempting to exit fullscreen:', err);
+        }
+      }
+    }
+  };
+
+  // Listen for fullscreen changes
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      // Only update state for desktop fullscreen changes
+      if (!isMobile()) {
+        setIsFullscreen(!!document.fullscreenElement);
+      }
+    };
+
+    const handleOrientationChange = () => {
+      // Re-trigger address bar hiding on mobile orientation change
+      if (isMobile() && isFullscreen) {
+        setTimeout(() => {
+          window.scrollTo(0, 1);
+          setTimeout(() => {
+            window.scrollTo(0, 0);
+          }, 100);
+        }, 300);
+      }
+    };
+
+    // Desktop fullscreen event listeners
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    // Mobile orientation change listener
+    window.addEventListener('orientationchange', handleOrientationChange);
+    screen.orientation?.addEventListener('change', handleOrientationChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+      
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      screen.orientation?.removeEventListener('change', handleOrientationChange);
+    };
+  }, [isFullscreen]);
+
   const sections = [
     { label: 'Forum', icon: <ForumIcon />, component: <ForumSection highlightedPostId={currentTab === 0 ? highlightedPostId : null} /> },
-    { label: 'Reviews', icon: <ReviewIcon />, component: <ReviewSection highlightedPostId={currentTab === 1 ? highlightedPostId : null} /> },
-    { label: 'Connect', icon: <ConnectionIcon />, component: <ConnectionSection highlightedPostId={currentTab === 2 ? highlightedPostId : null} /> },
-    { label: '二手平台', icon: <MarketplaceIcon />, component: <MarketplaceSection highlightedPostId={currentTab === 3 ? highlightedPostId : null} /> },
+    { label: 'Reviews', icon: <ReviewIcon />, component: <ReviewSection /> },
+    { label: 'Connect', icon: <ConnectionIcon />, component: <ConnectionSection /> },
+    { label: 'Marketplace', icon: <MarketplaceIcon />, component: <MarketplaceSection highlightedPostId={currentTab === 3 ? highlightedPostId : null} /> },
   ];
+
+  // Add mobile fullscreen CSS
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .mobile-fullscreen {
+        height: 100vh !important;
+        height: 100dvh !important; /* Dynamic viewport height for newer browsers */
+        overflow: hidden !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        z-index: 999999 !important;
+      }
+      
+      .mobile-fullscreen body {
+        height: 100vh !important;
+        height: 100dvh !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      
+      /* iOS Safari specific fixes */
+      @supports (-webkit-touch-callout: none) {
+        .mobile-fullscreen {
+          height: -webkit-fill-available !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      
+      <Box 
+        className={isFullscreen && isMobile() ? 'mobile-fullscreen-container' : ''}
+        sx={{
+          height: isFullscreen && isMobile() ? '100vh' : 'auto',
+          overflow: isFullscreen && isMobile() ? 'hidden' : 'auto',
+          overflowX: 'hidden', // Prevent horizontal scrolling
+          ...(isFullscreen && isMobile() && {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 999999,
+            width: '100vw',
+            height: 'calc(100vh)',
+            minHeight: '100dvh', // For newer browsers with dynamic viewport
+          })
+        }}
+      >
       
       {/* Mobile-First Navigation */}
       <AppBar position="static" sx={{ mb: 0 }}>
@@ -263,8 +481,23 @@ function MainApp() {
               fontWeight: 600
             }}
           >
-            24/7 Student
+            24/7
           </Typography>
+
+          {/* Fullscreen Button */}
+          <IconButton
+            onClick={toggleFullscreen}
+            sx={{ 
+              color: 'white',
+              mr: 1,
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+              }
+            }}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+          </IconButton>
 
           {/* Authentication Section */}
           {currentUser ? (
@@ -440,7 +673,8 @@ function MainApp() {
         sx={{ 
           mt: 0, 
           mb: { xs: 10, md: 4 }, // Extra bottom margin on mobile for bottom nav
-          px: { xs: 1, sm: 2 } 
+          px: { xs: 1, sm: 2 },
+          overflowX: 'hidden' // Prevent horizontal scrolling
         }}
       >
         {sections.map((section, index) => (
@@ -475,6 +709,7 @@ function MainApp() {
         open={Boolean(profileMenuAnchor)}
         onClose={handleProfileMenuClose}
       />
+      </Box>
     </ThemeProvider>
   );
 }

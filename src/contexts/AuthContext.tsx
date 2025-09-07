@@ -5,8 +5,9 @@ import {
   onAuthStateChanged,
   updateProfile,
   GoogleAuthProvider,
-  OAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword
 } from 'firebase/auth';
 import { auth } from '../firebase';
 
@@ -14,7 +15,8 @@ interface AuthContextType {
   currentUser: User | null;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<any>;
-  loginWithApple: () => Promise<any>;
+  loginWithEmailAndPassword: (email: string, password: string) => Promise<any>;
+  signupWithEmailAndPassword: (email: string, password: string) => Promise<any>;
   updateUserProfile: (displayName: string) => Promise<void>;
   loading: boolean;
 }
@@ -39,11 +41,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return signInWithPopup(auth, provider);
   };
 
-  const loginWithApple = () => {
-    const provider = new OAuthProvider('apple.com');
-    provider.addScope('email');
-    provider.addScope('name');
-    return signInWithPopup(auth, provider);
+  const loginWithEmailAndPassword = (email: string, password: string) => {
+    return signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const signupWithEmailAndPassword = (email: string, password: string) => {
+    return createUserWithEmailAndPassword(auth, email, password);
   };
 
   const logout = () => {
@@ -72,7 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentUser,
     logout,
     loginWithGoogle,
-    loginWithApple,
+    loginWithEmailAndPassword,
+    signupWithEmailAndPassword,
     updateUserProfile,
     loading
   };

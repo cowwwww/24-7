@@ -10,11 +10,14 @@ import {
   Alert,
   CircularProgress,
   Link,
+  TextField,
+  Divider,
 } from '@mui/material';
 import {
   Google as GoogleIcon,
-  Apple as AppleIcon,
   Close as CloseIcon,
+  Email as EmailIcon,
+  Lock as LockIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -27,8 +30,10 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ open, onClose, onSwitchToSignup }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const { loginWithGoogle, loginWithApple } = useAuth();
+  const { loginWithGoogle, loginWithEmailAndPassword } = useAuth();
 
   const handleGoogleLogin = async () => {
     try {
@@ -44,15 +49,39 @@ const Login: React.FC<LoginProps> = ({ open, onClose, onSwitchToSignup }) => {
     }
   };
 
-  const handleAppleLogin = async () => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
     try {
       setError('');
       setLoading(true);
-      await loginWithApple();
+      await loginWithEmailAndPassword(email, password);
       onClose();
     } catch (error: any) {
-      console.error('Apple login error:', error);
-      setError(error.message || 'Failed to log in with Apple');
+      console.error('Email login error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to log in';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email address';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -66,9 +95,7 @@ const Login: React.FC<LoginProps> = ({ open, onClose, onSwitchToSignup }) => {
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h6">
-          Welcome Back! 👋
-        </Typography>
+        Welcome Back! 👋
         <IconButton onClick={handleClose} size="small">
           <CloseIcon />
         </IconButton>
@@ -87,47 +114,70 @@ const Login: React.FC<LoginProps> = ({ open, onClose, onSwitchToSignup }) => {
           </Alert>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Button
+        {/* Email/Password Form */}
+        <Box component="form" onSubmit={handleEmailLogin} sx={{ mb: 3 }}>
+          <TextField
             fullWidth
-            variant="outlined"
-            size="large"
-            startIcon={<GoogleIcon />}
-            onClick={handleGoogleLogin}
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
-            sx={{ 
-              py: 1.5,
-              borderColor: '#db4437',
-              color: '#db4437',
-              '&:hover': {
-                borderColor: '#c23321',
-                backgroundColor: '#fdf2f2'
-              }
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
             }}
-          >
-            {loading ? <CircularProgress size={20} /> : 'Continue with Google'}
-          </Button>
-
-          <Button
+          />
+          <TextField
             fullWidth
-            variant="outlined"
-            size="large"
-            startIcon={<AppleIcon />}
-            onClick={handleAppleLogin}
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
-            sx={{ 
-              py: 1.5,
-              borderColor: '#000000',
-              color: '#000000',
-              '&:hover': {
-                borderColor: '#333333',
-                backgroundColor: '#f5f5f5'
-              }
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: <LockIcon sx={{ mr: 1, color: 'text.secondary' }} />
             }}
+          />
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            size="large"
+            disabled={loading || !email || !password}
+            sx={{ py: 1.5 }}
           >
-            {loading ? <CircularProgress size={20} /> : 'Continue with Apple'}
+            {loading ? <CircularProgress size={20} /> : 'Sign In'}
           </Button>
         </Box>
+
+        <Divider sx={{ my: 2 }}>
+          <Typography variant="body2" color="textSecondary">
+            OR
+          </Typography>
+        </Divider>
+
+        {/* Google Sign-In */}
+        <Button
+          fullWidth
+          variant="outlined"
+          size="large"
+          startIcon={<GoogleIcon />}
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          sx={{ 
+            py: 1.5,
+            borderColor: '#db4437',
+            color: '#db4437',
+            '&:hover': {
+              borderColor: '#c23321',
+              backgroundColor: '#fdf2f2'
+            }
+          }}
+        >
+          {loading ? <CircularProgress size={20} /> : 'Continue with Google'}
+        </Button>
 
         <Box textAlign="center" sx={{ mt: 3 }}>
           <Typography variant="body2" color="textSecondary">

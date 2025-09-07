@@ -257,9 +257,13 @@ const CanteenSection: React.FC = () => {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, 
+        gap: 3 
+      }}>
         {canteens.map((canteen) => (
-          <Grid xs={12} md={6} lg={4} key={canteen.id}>
+          <Box key={canteen.id}>
             <Card 
               sx={{ 
                 height: '100%', 
@@ -334,9 +338,9 @@ const CanteenSection: React.FC = () => {
                 </Button>
               </CardActions>
             </Card>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
 
       {/* Wait Time Dialog */}
       <Dialog open={waitTimeDialogOpen} onClose={() => setWaitTimeDialogOpen(false)} maxWidth="sm" fullWidth>
@@ -504,8 +508,12 @@ const CanteenSection: React.FC = () => {
             </DialogTitle>
             <DialogContent>
               <Box sx={{ pt: 2 }}>
-                <Grid container spacing={3}>
-                  <Grid xs={12} md={6}>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+                  gap: 3 
+                }}>
+                  <Box>
                     <Paper sx={{ p: 2, mb: 2 }}>
                       <Typography variant="h6" gutterBottom>
                         Current Status
@@ -570,9 +578,9 @@ const CanteenSection: React.FC = () => {
                         </Box>
                       </Paper>
                     )}
-                  </Grid>
+                  </Box>
 
-                  <Grid xs={12} md={6}>
+                  <Box>
                     <Paper sx={{ p: 2, mb: 2 }}>
                       <Typography variant="h6" gutterBottom>
                         Recent Wait Times
@@ -610,8 +618,8 @@ const CanteenSection: React.FC = () => {
                         ))}
                       </List>
                     </Paper>
-                  </Grid>
-                </Grid>
+                  </Box>
+                </Box>
 
                 <Box display="flex" gap={2} mt={3}>
                   <Button

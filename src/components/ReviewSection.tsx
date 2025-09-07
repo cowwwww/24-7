@@ -22,6 +22,8 @@ import {
   CircularProgress,
   LinearProgress,
   Badge,
+  Fab,
+  InputAdornment,
 } from '@mui/material';
 import {
   Wc as ToiletIcon,
@@ -36,6 +38,11 @@ import {
   AccessTime as WaitTimeIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Comment as CommentIcon,
+  Visibility as ViewIcon,
+  Send as SendIcon,
+  Close as CloseIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -51,8 +58,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { storeOccupancyData, getCurrentTimeInterval, getCurrentDayOfWeek } from '../services/mlPredictionService';
-import CanteenPredictionChart from './CanteenPredictionChart';
 
 interface FacilityReview {
   id: string;
@@ -66,6 +71,17 @@ interface FacilityReview {
   timestamp: Timestamp;
   occupancyLevel?: 'low' | 'medium' | 'high';
   waitTime?: number; // in minutes
+  comments?: ReviewComment[]; // Array of comments
+}
+
+interface ReviewComment {
+  id: string;
+  reviewId: string;
+  comment: string;
+  rating: number;
+  commenter: string;
+  userId?: string;
+  timestamp: Timestamp;
 }
 
 interface TabPanelProps {
@@ -93,11 +109,15 @@ const ReviewSection: React.FC = () => {
   const { currentUser } = useAuth();
   const [currentTab, setCurrentTab] = useState(0);
   const [reviews, setReviews] = useState<FacilityReview[]>([]);
+  const [comments, setComments] = useState<ReviewComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<FacilityReview | null>(null);
   const [editingReview, setEditingReview] = useState<FacilityReview | null>(null);
   const [selectedType, setSelectedType] = useState<'toilet' | 'canteen' | 'course' | 'professor'>('toilet');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const [newReview, setNewReview] = useState({
     name: '',
@@ -107,6 +127,12 @@ const ReviewSection: React.FC = () => {
     reviewer: '',
     occupancyLevel: 'medium' as 'low' | 'medium' | 'high',
     waitTime: 0,
+  });
+
+  const [newComment, setNewComment] = useState({
+    comment: '',
+    rating: 0,
+    commenter: '',
   });
 
   const facilityTypes = [
@@ -123,6 +149,7 @@ const ReviewSection: React.FC = () => {
 
   useEffect(() => {
     loadReviews();
+    loadComments();
   }, []);
 
   const loadReviews = async () => {
@@ -144,14 +171,25 @@ const ReviewSection: React.FC = () => {
     }
   };
 
+  const loadComments = async () => {
+    try {
+      const commentsRef = collection(db, 'reviewComments');
+      const q = query(commentsRef, orderBy('timestamp', 'desc'));
+      const snapshot = await getDocs(q);
+      
+      const commentsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ReviewComment[];
+      
+      setComments(commentsData);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    }
+  };
+
   const handleSubmitReview = async () => {
     if (!newReview.name.trim() || !newReview.location.trim() || newReview.rating === 0) {
-      return;
-    }
-
-    // Require authentication for posting
-    if (!currentUser) {
-      alert('Please sign up or log in to post reviews. This helps us provide better predictions and allows you to edit your reviews later.');
       return;
     }
 
@@ -159,31 +197,13 @@ const ReviewSection: React.FC = () => {
       const reviewData = {
         ...newReview,
         type: selectedType,
-        reviewer: newReview.reviewer || currentUser.displayName || 'Anonymous User',
-        userId: currentUser.uid,
+        reviewer: newReview.reviewer || (currentUser ? currentUser.displayName || 'Anonymous User' : 'Anonymous Student'),
+        userId: getUserId(),
         timestamp: Timestamp.now(),
       };
 
       await addDoc(collection(db, 'facilityReviews'), reviewData);
       
-      // Store occupancy data for ML predictions (for canteens and toilets)
-      if ((selectedType === 'canteen' || selectedType === 'toilet') && newReview.occupancyLevel && newReview.waitTime !== undefined) {
-        try {
-          await storeOccupancyData({
-            canteenId: `${newReview.name}-${newReview.location}`,
-            canteenName: newReview.name,
-            timestamp: Timestamp.now(),
-            occupancyLevel: newReview.occupancyLevel,
-            waitTime: newReview.waitTime,
-            dayOfWeek: getCurrentDayOfWeek(),
-            timeInterval: getCurrentTimeInterval(),
-            userId: currentUser.uid,
-          });
-        } catch (mlError) {
-          console.warn('Failed to store ML data:', mlError);
-          // Don't fail the review submission if ML data storage fails
-        }
-      }
       
       setNewReview({
         name: '',
@@ -226,7 +246,20 @@ const ReviewSection: React.FC = () => {
   };
 
   const getFilteredReviews = (type: string) => {
-    return reviews.filter(review => review.type === type);
+    let filtered = reviews.filter(review => review.type === type);
+    
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(review => 
+        review.name.toLowerCase().includes(searchLower) ||
+        review.location.toLowerCase().includes(searchLower) ||
+        review.review.toLowerCase().includes(searchLower) ||
+        review.reviewer.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered;
   };
 
   const calculateAverageRating = (facilityReviews: FacilityReview[]) => {
@@ -321,6 +354,44 @@ const ReviewSection: React.FC = () => {
     return currentUserId !== null && review.userId === currentUserId;
   };
 
+  const handleSubmitComment = async () => {
+    if (!selectedReview || !newComment.comment.trim() || newComment.rating === 0) {
+      return;
+    }
+
+    try {
+      const commentData = {
+        reviewId: selectedReview.id,
+        comment: newComment.comment,
+        rating: newComment.rating,
+        commenter: newComment.commenter || (currentUser ? currentUser.displayName || 'Anonymous User' : 'Anonymous Student'),
+        userId: getUserId(),
+        timestamp: Timestamp.now(),
+      };
+
+      await addDoc(collection(db, 'reviewComments'), commentData);
+      
+      setNewComment({
+        comment: '',
+        rating: 0,
+        commenter: '',
+      });
+      
+      loadComments();
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  const handleViewReview = (review: FacilityReview) => {
+    setSelectedReview(review);
+    setOpenDetailDialog(true);
+  };
+
+  const getCommentsForReview = (reviewId: string) => {
+    return comments.filter(comment => comment.reviewId === reviewId);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -331,14 +402,54 @@ const ReviewSection: React.FC = () => {
 
   return (
     <Box>
-      {/* Header */}
+      {/* Header with Search */}
       <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
-        <Typography variant="h5" component="h1" sx={{ color: 'white', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-          ⭐ Campus Reviews
-        </Typography>
-        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5" component="h1" sx={{ color: 'white', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+            ⭐ Campus Reviews
+          </Typography>
+        </Box>
+        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 2 }}>
           Rate facilities, courses & professors - Check real-time occupancy
         </Typography>
+        
+        {/* Integrated Search Bar */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search reviews, facilities, or reviewers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'white',
+                  },
+                },
+                '& .MuiInputBase-input::placeholder': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+        </Box>
       </Paper>
 
       {/* Navigation Tabs */}
@@ -376,51 +487,58 @@ const ReviewSection: React.FC = () => {
         <TabPanel key={type.id} value={currentTab} index={index}>
           <Box>
             {/* Overview Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' }, 
+              gap: 3, 
+              mb: 4 
+            }}>
               {/* Stats Card */}
-              <Grid item xs={12} md={3}>
-                <Paper sx={{ p: 3, textAlign: 'center', height: '100%' }}>
-                  <Typography variant="h3" sx={{ color: type.color, fontWeight: 'bold' }} gutterBottom>
-                    {getFilteredReviews(type.id).length}
-                  </Typography>
-                  <Typography variant="h6" color="textSecondary" gutterBottom>
-                    Total Reviews
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    sx={{ mt: 2, bgcolor: type.color, color: 'white' }}
-                    onClick={() => {
-                      if (!currentUser) {
-                        alert('Please sign up or log in to post reviews. This helps us provide better predictions and allows you to edit your reviews later.');
-                        return;
-                      }
-                      setSelectedType(type.id as any);
-                      setOpenDialog(true);
-                    }}
-                    fullWidth
-                  >
-                    {currentUser ? 'Add Review' : 'Sign In to Review'}
-                  </Button>
-                </Paper>
-              </Grid>
+
 
               {/* Top Rated Section */}
-              <Grid item xs={12} md={9}>
-                <Paper sx={{ p: 3, height: '100%' }}>
-                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box>
+                <Paper sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     🏆 Top Rated {type.label}
                   </Typography>
                   
                   {getTopRatedFacilities(type.id).length > 0 ? (
-                    <Grid container spacing={2}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: 'row',
+                      gap: { xs: 1.5, md: 2 },
+                      overflowX: 'auto',
+                      overflowY: 'hidden',
+                      pb: 1,
+                      mx: { xs: -0.5, md: 0 }, // Negative margin to extend to edges on mobile
+                      px: { xs: 0.5, md: 0 }, // Add horizontal padding on mobile
+                      width: { xs: 'calc(100% + 1rem)', md: '100%' }, // Extend width on mobile
+                      '&::-webkit-scrollbar': {
+                        height: '4px',
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        backgroundColor: '#f1f1f1',
+                        borderRadius: '2px',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: '#c1c1c1',
+                        borderRadius: '2px',
+                        '&:hover': {
+                          backgroundColor: '#a8a8a8',
+                        },
+                      },
+                    }}>
                       {getTopRatedFacilities(type.id).map((facility, idx) => (
-                        <Grid item xs={12} sm={6} key={idx}>
+                        <Box key={idx} sx={{ flexShrink: 0 }}>
                           <Box 
                             sx={{ 
-                              p: 2, 
+                              p: { xs: 1.5, md: 2 }, 
                               border: '1px solid #e0e0e0', 
-                              borderRadius: 2,
+                              borderRadius: { xs: 1.5, md: 2 },
+                              minWidth: { xs: 180, md: 250 },
+                              width: { xs: '180px', md: 'auto' }, // Fixed width on mobile
+                              flexShrink: 0,
                               '&:hover': { 
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                                 transform: 'translateY(-1px)',
@@ -428,19 +546,44 @@ const ReviewSection: React.FC = () => {
                               }
                             }}
                           >
-                            <Typography variant="body1" fontWeight="bold" gutterBottom>
+                            <Typography 
+                              variant="body1" 
+                              fontWeight="bold" 
+                              gutterBottom
+                              sx={{ 
+                                fontSize: { xs: '0.9rem', md: '1rem' },
+                                lineHeight: 1.2,
+                                mb: 1
+                              }}
+                            >
                               {facility.name}
                             </Typography>
-                            <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                            <Typography 
+                              variant="body2" 
+                              color="textSecondary" 
+                              sx={{ 
+                                mb: 1,
+                                fontSize: { xs: '0.75rem', md: '0.875rem' },
+                                lineHeight: 1.3
+                              }}
+                            >
                               📍 {facility.location}
                             </Typography>
                             <Box display="flex" alignItems="center" gap={1} mb={1}>
-                              <Rating value={facility.averageRating} readOnly size="small" />
-                              <Typography variant="body2">
+                              <Rating 
+                                value={facility.averageRating} 
+                                readOnly 
+                                size="small"
+                                sx={{ '& .MuiRating-icon': { fontSize: { xs: '1rem', md: '1.2rem' } } }}
+                              />
+                              <Typography 
+                                variant="body2"
+                                sx={{ 
+                                  fontSize: { xs: '0.7rem', md: '0.875rem' },
+                                  lineHeight: 1.2
+                                }}
+                              >
                                 {facility.averageRating.toFixed(1)}
-                              </Typography>
-                              <Typography variant="caption" color="textSecondary">
-                                ({facility.reviewCount} reviews)
                               </Typography>
                             </Box>
                             {(type.id === 'toilet' || type.id === 'canteen') && facility.latestOccupancy && (
@@ -455,91 +598,118 @@ const ReviewSection: React.FC = () => {
                               />
                             )}
                           </Box>
-                        </Grid>
+                        </Box>
                       ))}
-                    </Grid>
+                    </Box>
                   ) : (
                     <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
                       No reviews yet. Be the first to rate {type.label.toLowerCase()}!
                     </Typography>
                   )}
                 </Paper>
-              </Grid>
-            </Grid>
-
-            {/* ML Predictions for Canteens */}
-            {type.id === 'canteen' && (
-              <Box sx={{ mb: 3 }}>
-                <CanteenPredictionChart 
-                  canteenId="main-campus-canteen" 
-                  canteenName="Main Campus Canteen"
-                  onRefresh={loadReviews}
-                />
               </Box>
-            )}
+            </Box>
 
-            {/* Smart Suggestions */}
-            {type.id === 'canteen' && (
-              <Paper sx={{ p: 2, mb: 3, bgcolor: 'info.50' }}>
-                <Typography variant="h6" gutterBottom>
-                  💡 Smart Suggestions
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      🍎 Study Snacks Available:
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      • Fresh fruit and yogurt parfaits<br/>
-                      • Energy bars and nuts<br/>
-                      • Coffee and tea selection<br/>
-                      • Healthy sandwich options
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      📊 Best Times to Visit:
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      • Early morning (7:00-8:30 AM)<br/>
-                      • Late afternoon (2:00-3:30 PM)<br/>
-                      • Evening (6:00-7:00 PM)<br/>
-                      • Avoid lunch rush (11:30 AM-1:00 PM)
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Paper>
-            )}
+
+
 
             {/* All Reviews */}
             <Box>
-              <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-                📝 All Reviews ({getFilteredReviews(type.id).length})
+              <Typography variant="h6" gutterBottom sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '1.1rem', md: '1.25rem' } }}>
+                📝 All Reviews 
               </Typography>
-              <Grid container spacing={3}>
-                {getFilteredReviews(type.id).map((review) => (
-                  <Grid item xs={12} md={6} lg={4} key={review.id}>
-                    <Card elevation={2} sx={{ height: '100%', borderRadius: 2 }}>
-                      <CardContent sx={{ pb: 1 }}>
-                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                        <Typography variant="h6" component="h3">
-                          {review.name}
-                        </Typography>
-                        <Box display="flex" alignItems="center" gap={1}>
+              <Box sx={{ 
+                display: { xs: 'flex', md: 'grid' },
+                flexDirection: { xs: 'row', md: 'column' },
+                overflowX: { xs: 'auto', md: 'visible' },
+                gap: { xs: 1.5, md: 2 },
+                pb: { xs: 1, md: 0 },
+                '&::-webkit-scrollbar': {
+                  height: 4,
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: '#f1f1f1',
+                  borderRadius: 2,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#c1c1c1',
+                  borderRadius: 2,
+                  '&:hover': {
+                    backgroundColor: '#a8a8a8',
+                  },
+                },
+                gridTemplateColumns: { md: '1fr 1fr', lg: '1fr 1fr 1fr' }
+              }}>
+                {getFilteredReviews(type.id)
+                  .sort((a, b) => a.rating - b.rating) // Sort from worst to best (lowest to highest rating)
+                  .map((review) => (
+                  <Box key={review.id} sx={{ 
+                    minWidth: { xs: '260px', md: 'auto' },
+                    flexShrink: { xs: 0, md: 1 }
+                  }}>
+                    <Card 
+                      elevation={1} 
+                      sx={{ 
+                        height: '100%', 
+                        borderRadius: { xs: 1.5, md: 2 },
+                        cursor: 'pointer',
+                        '&:hover': {
+                          elevation: 3,
+                          transform: 'translateY(-1px)',
+                          transition: 'all 0.2s ease'
+                        }
+                      }}
+                      onClick={() => handleViewReview(review)}
+                    >
+                      <CardContent sx={{ p: { xs: 1.5, md: 2 }, pb: { xs: 1, md: 1.5 } }}>
+                      <Box display="flex" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography 
+                            variant="subtitle1" 
+                            component="h3" 
+                            sx={{ 
+                              fontWeight: 600,
+                              fontSize: { xs: '0.9rem', md: '1rem' },
+                              lineHeight: 1.2,
+                              mb: 0.5
+                            }}
+                          >
+                            {review.name}
+                          </Typography>
+                          <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
+                            <LocationIcon fontSize="small" color="action" sx={{ fontSize: '0.8rem' }} />
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.75rem' }}>
+                              {review.location}
+                            </Typography>
+                          </Box>
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <ScheduleIcon fontSize="small" color="action" sx={{ fontSize: '0.8rem' }} />
+                            <Typography variant="body2" color="textSecondary" sx={{ fontSize: '0.75rem' }}>
+                              {review.timestamp?.toDate().toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap={0.5}>
                           <Rating value={review.rating} readOnly size="small" />
                           {canEditReview(review) && (
-                            <Box display="flex" gap={0.5}>
+                            <Box display="flex" gap={0.25}>
                               <IconButton 
                                 size="small" 
-                                onClick={() => handleEditReview(review)}
-                                sx={{ color: 'primary.main' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditReview(review);
+                                }}
+                                sx={{ color: 'primary.main', p: 0.5 }}
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
                               <IconButton 
                                 size="small" 
-                                onClick={() => handleDeleteReview(review.id)}
-                                sx={{ color: 'error.main' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteReview(review.id);
+                                }}
+                                sx={{ color: 'error.main', p: 0.5 }}
                               >
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
@@ -548,48 +718,50 @@ const ReviewSection: React.FC = () => {
                         </Box>
                       </Box>
 
-                      <Box display="flex" alignItems="center" gap={1} mb={1}>
-                        <LocationIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="textSecondary">
-                          {review.location}
-                        </Typography>
-                      </Box>
-
-                      <Box display="flex" alignItems="center" gap={1} mb={2}>
-                        <ScheduleIcon fontSize="small" color="action" />
-                        <Typography variant="body2" color="textSecondary">
-                          {review.timestamp?.toDate().toLocaleDateString()}
-                        </Typography>
-                      </Box>
-
                       {review.review && (
-                        <Typography variant="body2" paragraph>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            fontSize: { xs: '0.75rem', md: '0.875rem' },
+                            lineHeight: 1.4,
+                            mb: 1,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            color: 'text.secondary'
+                          }}
+                        >
                           "{review.review}"
                         </Typography>
                       )}
 
                       {/* Occupancy and Wait Time for relevant facilities */}
                       {(type.id === 'toilet' || type.id === 'canteen') && (
-                        <Box display="flex" gap={1} mb={2}>
+                        <Box display="flex" gap={0.5} flexWrap="wrap">
                           {review.occupancyLevel && (
                             <Chip
                               size="small"
-                              label={`🚦 ${getOccupancyLabel(review.occupancyLevel)}`}
+                              label={getOccupancyLabel(review.occupancyLevel)}
                               sx={{ 
                                 bgcolor: getOccupancyColor(review.occupancyLevel),
                                 color: 'white',
-                                fontSize: '0.7rem'
+                                fontSize: '0.65rem',
+                                height: 18,
+                                '& .MuiChip-label': { px: 0.75 }
                               }}
                             />
                           )}
                           {review.waitTime !== undefined && (
                             <Chip
                               size="small"
-                              label={`⏰ ${review.waitTime}min wait`}
+                              label={`${review.waitTime}min`}
                               sx={{ 
                                 bgcolor: getWaitTimeColor(review.waitTime),
                                 color: 'white',
-                                fontSize: '0.7rem'
+                                fontSize: '0.65rem',
+                                height: 18,
+                                '& .MuiChip-label': { px: 0.75 }
                               }}
                             />
                           )}
@@ -599,11 +771,27 @@ const ReviewSection: React.FC = () => {
                       <Typography variant="caption" color="textSecondary">
                         - {review.reviewer}
                       </Typography>
+
+                      {/* Comment and Rating Summary */}
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} pt={1} borderTop="1px solid #e0e0e0">
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <CommentIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="textSecondary">
+                            {getCommentsForReview(review.id).length} comments
+                          </Typography>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <ViewIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="textSecondary">
+                            View Details
+                          </Typography>
+                        </Box>
+                      </Box>
                     </CardContent>
                   </Card>
-                </Grid>
-              ))}
-              </Grid>
+                  </Box>
+                ))}
+              </Box>
             </Box>
 
             {getFilteredReviews(type.id).length === 0 && (
@@ -619,15 +807,11 @@ const ReviewSection: React.FC = () => {
                   startIcon={<AddIcon />}
                   sx={{ bgcolor: type.color }}
                   onClick={() => {
-                    if (!currentUser) {
-                      alert('Please sign up or log in to post reviews. This helps us provide better predictions and allows you to edit your reviews later.');
-                      return;
-                    }
                     setSelectedType(type.id as any);
                     setOpenDialog(true);
                   }}
                 >
-                  {currentUser ? 'Add First Review' : 'Sign In to Review'}
+                  Add First Review
                 </Button>
               </Paper>
             )}
@@ -822,6 +1006,143 @@ const ReviewSection: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Review Detail Dialog with Comments */}
+      <Dialog 
+        open={openDetailDialog} 
+        onClose={() => setOpenDetailDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">
+              {selectedReview?.name} - Details
+            </Typography>
+            <IconButton onClick={() => setOpenDetailDialog(false)}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedReview && (
+            <Stack spacing={3}>
+              {/* Original Review */}
+              <Paper sx={{ p: 3, bgcolor: '#f8f9fa' }}>
+                <Box display="flex" justifyContent="between" alignItems="center" mb={2}>
+                  <Typography variant="h6">{selectedReview.name}</Typography>
+                  <Rating value={selectedReview.rating} readOnly />
+                </Box>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  📍 {selectedReview.location}
+                </Typography>
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  📅 {selectedReview.timestamp?.toDate().toLocaleDateString()}
+                </Typography>
+                {selectedReview.review && (
+                  <Typography variant="body1" sx={{ mb: 2 }}>
+                    "{selectedReview.review}"
+                  </Typography>
+                )}
+                <Typography variant="caption" color="textSecondary">
+                  - {selectedReview.reviewer}
+                </Typography>
+              </Paper>
+
+              {/* Comments Section */}
+              <Box>
+                <Typography variant="h6" gutterBottom>
+                  💬 Comments ({getCommentsForReview(selectedReview.id).length})
+                </Typography>
+                
+                {/* Existing Comments */}
+                <Stack spacing={2} sx={{ mb: 3 }}>
+                  {getCommentsForReview(selectedReview.id).map((comment) => (
+                    <Paper key={comment.id} sx={{ p: 2 }}>
+                      <Box display="flex" justifyContent="between" alignItems="center" mb={1}>
+                        <Typography variant="subtitle2">{comment.commenter}</Typography>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Rating value={comment.rating} readOnly size="small" />
+                          <Typography variant="caption" color="textSecondary">
+                            {comment.timestamp?.toDate().toLocaleDateString()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Typography variant="body2">{comment.comment}</Typography>
+                    </Paper>
+                  ))}
+                </Stack>
+
+                {/* Add New Comment */}
+                <Paper sx={{ p: 3, bgcolor: '#f0f8ff' }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    💭 Add Your Comment & Rating
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography component="legend" gutterBottom>
+                        Your Rating *
+                      </Typography>
+                      <Rating
+                        value={newComment.rating}
+                        onChange={(e, newValue) => setNewComment({ ...newComment, rating: newValue || 0 })}
+                        size="large"
+                      />
+                    </Box>
+
+                    <TextField
+                      label="Your Comment"
+                      value={newComment.comment}
+                      onChange={(e) => setNewComment({ ...newComment, comment: e.target.value })}
+                      fullWidth
+                      multiline
+                      rows={3}
+                      placeholder="Share your thoughts about this review..."
+                    />
+
+                    <TextField
+                      label="Your Name (Optional)"
+                      value={newComment.commenter}
+                      onChange={(e) => setNewComment({ ...newComment, commenter: e.target.value })}
+                      fullWidth
+                      placeholder="How would you like to be credited?"
+                    />
+
+                    <Button
+                      variant="contained"
+                      startIcon={<SendIcon />}
+                      onClick={handleSubmitComment}
+                      disabled={!newComment.comment.trim() || newComment.rating === 0}
+                      sx={{ alignSelf: 'flex-start' }}
+                    >
+                      Post Comment
+                    </Button>
+                  </Stack>
+                </Paper>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating Action Button for Adding Reviews */}
+      <Fab
+        color="primary"
+        aria-label="add review"
+        sx={{ 
+          position: 'fixed', 
+          bottom: { xs: 90, md: 20 }, 
+          right: 20,
+          zIndex: 1000
+        }}
+        onClick={() => {
+          setSelectedType(facilityTypes[currentTab].id as any);
+          setOpenDialog(true);
+        }}
+      >
+        <AddIcon />
+      </Fab>
     </Box>
   );
 };

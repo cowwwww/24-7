@@ -27,7 +27,8 @@ import {
   MenuItem,
   Slider,
   CardMedia,
-  Grid,
+  InputAdornment,
+  Fab,
 } from '@mui/material';
 import {
   Smartphone as PhoneIcon,
@@ -53,6 +54,7 @@ import {
   Bookmark as BookmarkedIcon,
   BookmarkBorder as BookmarkIcon,
   Link as LinkIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { 
   collection, 
@@ -64,7 +66,8 @@ import {
   updateDoc,
   doc,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -122,6 +125,8 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
   const [selectedCondition, setSelectedCondition] = useState('');
   const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: 1000});
   const [bookmarkedItems, setBookmarkedItems] = useState<string[]>([]);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [selectedItemForContact, setSelectedItemForContact] = useState<MarketplaceItem | null>(null);
 
   const [newItem, setNewItem] = useState({
     title: '',
@@ -139,29 +144,29 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
   const [tagInput, setTagInput] = useState('');
 
   const conditions = [
-    { id: 'new', label: '全新 New', color: '#4caf50' },
-    { id: 'like-new', label: '九成新 Like New', color: '#8bc34a' },
-    { id: 'good', label: '八成新 Good', color: '#ffc107' },
-    { id: 'fair', label: '七成新 Fair', color: '#ff9800' },
-    { id: 'poor', label: '六成新 Poor', color: '#f44336' },
+    { id: 'new', label: 'New', color: '#4caf50' },
+    { id: 'like-new', label: 'Like New', color: '#8bc34a' },
+    { id: 'good', label: 'Good', color: '#ffc107' },
+    { id: 'fair', label: 'Fair', color: '#ff9800' },
+    { id: 'poor', label: 'Poor', color: '#f44336' },
   ];
 
   const categories = [
-    { id: 'electronics', label: '📱 电子产品 Electronics', icon: <PhoneIcon />, color: '#1976d2' },
-    { id: 'books', label: '📚 教材书籍 Books & Textbooks', icon: <BookIcon />, color: '#4caf50' },
-    { id: 'clothing', label: '👕 服装鞋帽 Clothing & Shoes', icon: <ClothingIcon />, color: '#e91e63' },
-    { id: 'sports', label: '🏃 运动用品 Sports & Fitness', icon: <SportsIcon />, color: '#ff9800' },
-    { id: 'furniture', label: '🪑 家具家电 Furniture & Appliances', icon: <BikeIcon />, color: '#9c27b0' },
-    { id: 'stationery', label: '✏️ 文具用品 Stationery', icon: <StudyIcon />, color: '#607d8b' },
-    { id: 'games', label: '🎮 游戏娱乐 Games & Entertainment', icon: <GameIcon />, color: '#795548' },
-    { id: 'other', label: '🔹 其他 Others', icon: <OtherIcon />, color: '#666666' },
+    { id: 'electronics', label: '📱 Electronics', icon: <PhoneIcon />, color: '#1976d2' },
+    { id: 'books', label: '📚 Books & Textbooks', icon: <BookIcon />, color: '#4caf50' },
+    { id: 'clothing', label: '👕 Clothing & Shoes', icon: <ClothingIcon />, color: '#e91e63' },
+    { id: 'sports', label: '🏃 Sports & Fitness', icon: <SportsIcon />, color: '#ff9800' },
+    { id: 'furniture', label: '🪑 Furniture & Appliances', icon: <BikeIcon />, color: '#9c27b0' },
+    { id: 'stationery', label: '✏️ Stationery', icon: <StudyIcon />, color: '#607d8b' },
+    { id: 'games', label: '🎮 Games & Entertainment', icon: <GameIcon />, color: '#795548' },
+    { id: 'other', label: '🔹 Others', icon: <OtherIcon />, color: '#666666' },
   ];
 
   // Sample marketplace items
   const sampleItems = [
     {
       title: '微积分教科书 Calculus Textbook',
-      description: 'Stewart 第8版，几乎全新，笔记很少 Stewart 8th edition, almost new with minimal notes',
+      description: 'Stewart 8th edition, almost new with minimal notes',
       price: 80,
       condition: 'like-new' as const,
       category: 'study-materials',
@@ -172,7 +177,7 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
       images: [],
     },
     {
-      title: '宿舍床垫 Dorm Mattress',
+      title: 'Dorm Mattress',
       description: '单人床垫，使用一年，很舒适 Single mattress, used for 1 year, very comfortable',
       price: 150,
       condition: 'good' as const,
@@ -239,6 +244,7 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
     }
   };
 
+
   const loadItems = async () => {
     try {
       const itemsRef = collection(db, 'marketplace-items');
@@ -259,7 +265,7 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
   };
 
   const handleSubmitItem = async () => {
-    if (!newItem.title.trim() || !newItem.category || !newItem.condition || newItem.price <= 0) {
+    if (!newItem.title.trim() || !newItem.category || !newItem.condition || newItem.price < 0) {
       return;
     }
 
@@ -337,10 +343,15 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
 
   const handleViewItem = async (item: MarketplaceItem) => {
     try {
+      // Update view count
       const itemRef = doc(db, 'marketplace-items', item.id);
       await updateDoc(itemRef, {
         views: item.views + 1
       });
+      
+      // Open contact dialog
+      setSelectedItemForContact(item);
+      setContactDialogOpen(true);
       
       loadItems();
     } catch (error) {
@@ -420,123 +431,187 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
   }
 
   return (
-    <Box>
-      {/* Header */}
-      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#000000', borderRadius: { xs: 2, sm: 3 } }}>
-        <Typography variant="h5" component="h1" sx={{ color: 'white', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
-          🛍️ 二手市场 Marketplace
+    <Box sx={{ 
+      px: { xs: 1, sm: 2 }, 
+      pb: { xs: 10, sm: 4 } // Extra bottom padding on mobile for FAB
+    }}>
+      {/* Header with Search */}
+      <Paper elevation={1} sx={{ p: { xs: 2, sm: 3 }, mb: 2, backgroundColor: '#f5f5f5', borderRadius: { xs: 2, sm: 3 } }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h5" component="h1" sx={{ color: '#333', fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+            🛒 Marketplace
+          </Typography>
+        </Box>
+        <Typography variant="body1" sx={{ color: '#666', fontSize: { xs: '0.875rem', sm: '1rem' }, mb: 2 }}>
+          Buy and sell items with fellow students
         </Typography>
-        <Typography variant="body1" sx={{ color: '#cccccc', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          买卖二手物品的学生平台 Student platform for buying & selling second-hand items
-        </Typography>
-      </Paper>
-
-      {/* Search and Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
+        
+        {/* Integrated Search Bar */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ flex: '1 1 250px', minWidth: 250 }}>
             <TextField
               fullWidth
               size="small"
-              placeholder="搜索物品... Search items..."
+              placeholder="Search items, categories, or sellers..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'white',
+                  '& fieldset': {
+                    borderColor: '#ddd',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#999',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#1976d2',
+                  },
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: '#666' }} />
+                  </InputAdornment>
+                ),
+              }}
             />
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                label="Category"
-              >
-                <MenuItem value="">All Categories</MenuItem>
-                {categories.map(category => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Condition</InputLabel>
-              <Select
-                value={selectedCondition}
-                onChange={(e) => setSelectedCondition(e.target.value)}
-                label="Condition"
-              >
-                <MenuItem value="">All Conditions</MenuItem>
-                {conditions.map(condition => (
-                  <MenuItem key={condition.id} value={condition.id}>
-                    {condition.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <Box sx={{ px: 2 }}>
-              <Typography variant="body2" gutterBottom>
-                Price Range: ${priceRange.min} - ${priceRange.max}
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Filters and Navigation */}
+      <Paper elevation={1} sx={{ p: { xs: 1.5, sm: 2 }, mb: 3, backgroundColor: '#fafafa' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1.5, sm: 2 }, 
+          alignItems: { xs: 'stretch', sm: 'center' }
+        }}>
+          {/* Filters Row */}
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 1.5, sm: 2 },
+            flex: { xs: '1', sm: '0 0 auto' },
+            minWidth: { xs: '100%', sm: 'auto' }
+          }}>
+            <Box sx={{ flex: { xs: '1', sm: '0 0 120px' }, minWidth: { xs: '100%', sm: 120 } }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  label="Category"
+                >
+                  <MenuItem value="">All Categories</MenuItem>
+                  {categories.map(category => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: { xs: '1', sm: '0 0 120px' }, minWidth: { xs: '100%', sm: 120 } }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Condition</InputLabel>
+                <Select
+                  value={selectedCondition}
+                  onChange={(e) => setSelectedCondition(e.target.value)}
+                  label="Condition"
+                >
+                  <MenuItem value="">All Conditions</MenuItem>
+                  {conditions.map(condition => (
+                    <MenuItem key={condition.id} value={condition.id}>
+                      {condition.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+            <Box sx={{ flex: { xs: '1', sm: '0 0 160px' }, minWidth: { xs: '100%', sm: 160 } }}>
+              <Typography variant="body2" gutterBottom sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                Price: ${priceRange.min} - ${priceRange.max}
               </Typography>
               <Slider
                 value={[priceRange.min, priceRange.max]}
-                onChange={(e, newValue) => setPriceRange({
-                  min: (newValue as number[])[0],
-                  max: (newValue as number[])[1]
-                })}
+                onChange={(e, newValue) => {
+                  const newRange = {
+                    min: (newValue as number[])[0],
+                    max: (newValue as number[])[1]
+                  };
+                  setPriceRange(newRange);
+                  console.log('Price range updated:', newRange); // Debug log
+                }}
                 valueLabelDisplay="auto"
                 min={0}
                 max={1000}
                 step={10}
                 size="small"
+                sx={{
+                  '& .MuiSlider-thumb': {
+                    width: 16,
+                    height: 16,
+                  },
+                  '& .MuiSlider-track': {
+                    height: 4,
+                  },
+                  '& .MuiSlider-rail': {
+                    height: 4,
+                  }
+                }}
               />
             </Box>
-          </Grid>
-          <Grid item xs={12} md={1}>
-            <Typography variant="body2" color="textSecondary" textAlign="center">
-              {getFilteredItems().length} items
-            </Typography>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setOpenDialog(true)}
-              fullWidth
+            <Box sx={{ 
+              flex: { xs: '0 0 auto', sm: '0 0 60px' }, 
+              textAlign: 'center',
+              alignSelf: { xs: 'center', sm: 'auto' }
+            }}>
+              <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
+                {getFilteredItems().length} items
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Navigation Tabs */}
+          <Box sx={{ 
+            flex: { xs: '1', sm: '0 0 auto' },
+            minWidth: { xs: '100%', sm: 280 },
+            overflow: 'hidden'
+          }}>
+            <Tabs 
+              value={currentTab} 
+              onChange={(e, newValue) => setCurrentTab(newValue)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{ 
+                minHeight: 'auto',
+                '& .MuiTab-root': {
+                  minWidth: 'auto',
+                  px: { xs: 1, sm: 2 },
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                }
+              }}
             >
-              Sell Item
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Navigation Tabs */}
-      <Paper sx={{ mb: 3 }}>
-        <Tabs 
-          value={currentTab} 
-          onChange={(e, newValue) => setCurrentTab(newValue)}
-          variant="scrollable"
-          scrollButtons="auto"
-        >
-          <Tab icon={<StarIcon />} label="热门 Popular" iconPosition="start" />
-          <Tab icon={<CategoryIcon />} label="分类浏览 By Category" iconPosition="start" />
-          <Tab icon={<BookmarkedIcon />} label="我的收藏 My Saved" iconPosition="start" />
-        </Tabs>
+              <Tab icon={<StarIcon />} label="Popular" iconPosition="start" />
+              <Tab icon={<CategoryIcon />} label="By Category" iconPosition="start" />
+              <Tab icon={<BookmarkedIcon />} label="My Saved" iconPosition="start" />
+            </Tabs>
+          </Box>
+        </Box>
       </Paper>
 
       {/* Tab Content */}
       <TabPanel value={currentTab} index={0}>
         {/* Popular Items */}
         <Typography variant="h6" gutterBottom>
-          🔥 热门商品 Most Viewed Items
+          🔥 Most Viewed Items
         </Typography>
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
           {getPopularItems().map((item) => (
-            <Grid item xs={12} md={6} lg={4} key={item.id}>
+            <Box key={item.id}>
               <Card elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
@@ -544,7 +619,7 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                       <Typography variant="h6" component="h3" gutterBottom>
                         {item.title}
                       </Typography>
-                      <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1, color: '#333' }}>
                         ${item.price}
                       </Typography>
                     </Box>
@@ -564,7 +639,14 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                     <Chip
                       label={getConditionInfo(item.condition).label}
                       size="small"
-                      sx={{ bgcolor: getConditionInfo(item.condition).color, color: 'white' }}
+                      variant="outlined"
+                      sx={{ 
+                        borderColor: '#333',
+                        color: '#333',
+                        '&:hover': {
+                          backgroundColor: '#f5f5f5'
+                        }
+                      }}
                     />
                     <Chip
                       label={categories.find(cat => cat.id === item.category)?.label || item.category}
@@ -614,15 +696,15 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                     onClick={() => handleViewItem(item)}
                     fullWidth
                     variant="contained"
-                    sx={{ bgcolor: getCategoryColor(item.category) }}
+                    sx={{ bgcolor: '#000000'}} 
                   >
-                    联系卖家 Contact Seller
+                      Contact Seller
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </TabPanel>
 
       <TabPanel value={currentTab} index={1}>
@@ -639,9 +721,9 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                 {category.label} ({categoryItems.length})
               </Typography>
               
-              <Grid container spacing={2}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
                 {categoryItems.slice(0, 6).map((item) => (
-                  <Grid item xs={12} md={6} lg={4} key={item.id}>
+                  <Box key={item.id}>
                     <Card elevation={1} sx={{ height: '100%' }}>
                       <CardContent>
                         <Box display="flex" justifyContent="space-between" alignItems="start" mb={1}>
@@ -649,7 +731,7 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                             <Typography variant="h6" component="h3" gutterBottom>
                               {item.title}
                             </Typography>
-                            <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#333' }}>
                               ${item.price}
                             </Typography>
                           </Box>
@@ -670,7 +752,14 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                           <Chip
                             label={getConditionInfo(item.condition).label}
                             size="small"
-                            sx={{ bgcolor: getConditionInfo(item.condition).color, color: 'white' }}
+                            variant="outlined"
+                            sx={{ 
+                              borderColor: '#333',
+                              color: '#333',
+                              '&:hover': {
+                                backgroundColor: '#f5f5f5'
+                              }
+                            }}
                           />
                           <Chip
                             icon={<ViewIcon />}
@@ -698,9 +787,9 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                         </Button>
                       </CardContent>
                     </Card>
-                  </Grid>
+                  </Box>
                 ))}
-              </Grid>
+              </Box>
               
               {categoryItems.length > 6 && (
                 <Box textAlign="center" mt={2}>
@@ -719,16 +808,16 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
         {getBookmarkedItems().length === 0 ? (
           <Paper sx={{ p: 4, textAlign: 'center' }}>
             <Typography variant="h6" color="textSecondary" gutterBottom>
-              还没有收藏的商品 No saved items yet
+              No saved items yet
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              开始收藏感兴趣的商品，方便以后查找！Start saving items you're interested in!
+              Start saving items you're interested in!
             </Typography>
           </Paper>
         ) : (
-          <Grid container spacing={2}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 2 }}>
             {getBookmarkedItems().map((item) => (
-              <Grid item xs={12} md={6} lg={4} key={item.id}>
+              <Box key={item.id}>
                 <Card elevation={2}>
                   <CardContent>
                     <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
@@ -771,34 +860,34 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                       fullWidth
                       sx={{ bgcolor: getCategoryColor(item.category) }}
                     >
-                      联系卖家 Contact Seller
+                      Contact Seller
                     </Button>
                   </CardContent>
                 </Card>
-              </Grid>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         )}
       </TabPanel>
 
       {/* Add Item Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>出售物品 Sell Item</DialogTitle>
+        <DialogTitle>Sell Item</DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
             <TextField
-              label="物品名称 Item Title"
+              label="Item Title"
               value={newItem.title}
               onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
               fullWidth
               required
-              placeholder="e.g., 微积分教科书, MacBook Pro, 宿舍床垫..."
+              placeholder="e.g., Calculus Textbook, MacBook Pro, Dorm Mattress..."
             />
 
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ flex: 1 }}>
                 <TextField
-                  label="价格 Price ($)"
+                  label="Price ($)"
                   type="number"
                   value={newItem.price}
                   onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })}
@@ -806,14 +895,14 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                   required
                   inputProps={{ min: 0, step: 0.01 }}
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </Box>
+              <Box sx={{ flex: 1 }}>
                 <FormControl fullWidth required>
-                  <InputLabel>物品状况 Condition</InputLabel>
+                  <InputLabel>Condition</InputLabel>
                   <Select
                     value={newItem.condition}
                     onChange={(e) => setNewItem({ ...newItem, condition: e.target.value as any })}
-                    label="物品状况 Condition"
+                    label="Condition"
                   >
                     {conditions.map(condition => (
                       <MenuItem key={condition.id} value={condition.id}>
@@ -822,17 +911,17 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             <TextField
-              label="详细描述 Description"
+              label="Description"
               value={newItem.description}
               onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
               fullWidth
               multiline
               rows={3}
-              placeholder="详细描述物品的状况、使用时间、购买原因等... Describe the item condition, usage time, etc..."
+              placeholder="Describe the item condition, usage time, etc..."
             />
 
             <FormControl fullWidth required>
@@ -853,33 +942,33 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
               </Select>
             </FormControl>
 
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ flex: 1 }}>
                 <TextField
-                  label="位置 Location"
+                  label="Location"
                   value={newItem.location}
                   onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
                   fullWidth
-                  placeholder="e.g., 校园内, 宿舍楼下, On campus..."
+                  placeholder="e.g., On campus, Dorm lobby..."
                 />
-              </Grid>
-              <Grid item xs={6}>
+              </Box>
+              <Box sx={{ flex: 1 }}>
                 <TextField
-                  label="联系方式 Contact"
+                  label="Contact"
                   value={newItem.sellerContact}
                   onChange={(e) => setNewItem({ ...newItem, sellerContact: e.target.value })}
                   fullWidth
                   placeholder="e.g., WeChat: xxx, Email: xxx"
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
 
             <Box>
-              <Typography variant="subtitle2" gutterBottom>标签 Tags</Typography>
+              <Typography variant="subtitle2" gutterBottom>Tags</Typography>
               <Box display="flex" gap={1} mb={1}>
                 <TextField
                   size="small"
-                  placeholder="添加标签 Add a tag"
+                  placeholder="Add a tag"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && addTag()}
@@ -899,25 +988,99 @@ const MarketplaceSection: React.FC<MarketplaceSectionProps> = ({ highlightedPost
             </Box>
 
             <TextField
-              label="您的姓名 Your Name (Optional)"
+              label="Your Name (Optional)"
               value={newItem.sellerName}
               onChange={(e) => setNewItem({ ...newItem, sellerName: e.target.value })}
               fullWidth
-              placeholder="您希望如何称呼？How would you like to be called?"
+              placeholder="How would you like to be called?"
             />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>取消 Cancel</Button>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
           <Button 
             onClick={handleSubmitItem} 
             variant="contained"
-            disabled={!newItem.title.trim() || !newItem.category || !newItem.condition || newItem.price <= 0}
+            disabled={!newItem.title.trim() || !newItem.category || !newItem.condition || newItem.price < 0}
           >
-            发布商品 Post Item
+            Post Item
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Contact Seller Dialog */}
+      <Dialog 
+        open={contactDialogOpen} 
+        onClose={() => setContactDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Contact Seller
+        </DialogTitle>
+        <DialogContent>
+          {selectedItemForContact && (
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                {selectedItemForContact.title}
+              </Typography>
+              <Typography variant="h5" color="primary" gutterBottom>
+                ${selectedItemForContact.price}
+              </Typography>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Typography variant="subtitle1" gutterBottom>
+                Seller Information:
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                <strong>Name:</strong> {selectedItemForContact.sellerName || 'Not provided'}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                <strong>Contact:</strong> {selectedItemForContact.sellerContact || 'Not provided'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                <strong>Location:</strong> {selectedItemForContact.location || 'Not provided'}
+              </Typography>
+              
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Typography variant="body2" color="textSecondary">
+                Please contact the seller directly using the information above. Be sure to mention this item when you reach out!
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setContactDialogOpen(false)}>
+            Close
+          </Button>
+          {selectedItemForContact?.sellerContact.includes('@') && (
+            <Button 
+              variant="contained" 
+              onClick={() => window.open(`mailto:${selectedItemForContact.sellerContact}?subject=Interest in ${selectedItemForContact.title}`, '_blank')}
+            >
+              Send Email
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Floating Action Button for Sell Item */}
+      <Fab
+        color="primary"
+        aria-label="sell item"
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 90, md: 20 },
+          right: 20,
+          zIndex: 1000,
+        }}
+        onClick={() => setOpenDialog(true)}
+      >
+        <AddIcon />
+      </Fab>
     </Box>
   );
 };
