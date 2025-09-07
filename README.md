@@ -41,7 +41,7 @@ A comprehensive web application designed to enhance student life with essential 
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/cowwwww/24-7.git
    cd 24-7
    ```
 
@@ -51,8 +51,9 @@ A comprehensive web application designed to enhance student life with essential 
    ```
 
 3. **Firebase Configuration**
-   - The app is pre-configured with Firebase
+   - The app is pre-configured with Firebase project `team24-7`
    - Database collections will be created automatically on first use
+   - Firebase configuration is in `src/firebase.ts`
 
 4. **Run the development server**
    ```bash
@@ -63,6 +64,51 @@ A comprehensive web application designed to enhance student life with essential 
    ```bash
    npm run build
    ```
+
+## 🚀 Deployment
+
+### Automatic Deployment with GitHub Actions
+
+The project is configured for automatic deployment to Firebase Hosting when you push to the `main` branch.
+
+#### Setup Steps:
+
+1. **Login to Firebase CLI** (one-time setup)
+   ```bash
+   firebase login
+   ```
+
+2. **Generate Service Account Key**
+   ```bash
+   # Go to Firebase Console > Project Settings > Service Accounts
+   # Click "Generate new private key" and download the JSON file
+   ```
+
+3. **Add GitHub Secrets**
+   - Go to your GitHub repository: https://github.com/cowwwww/24-7
+   - Navigate to Settings > Secrets and variables > Actions
+   - Add a new secret named `FIREBASE_SERVICE_ACCOUNT_TEAM24_7`
+   - Copy the entire content of the service account JSON file as the value
+
+4. **Deploy**
+   - Push to `main` branch: `git push origin main`
+   - GitHub Actions will automatically build and deploy to Firebase Hosting
+   - Your app will be available at: https://team24-7.firebaseapp.com
+
+### Manual Deployment
+
+You can also deploy manually:
+
+```bash
+# Build the project
+npm run build
+
+# Deploy to Firebase Hosting
+npm run deploy:hosting
+
+# Or deploy everything (hosting + firestore rules)
+npm run deploy
+```
 
 ## 📱 Usage
 
